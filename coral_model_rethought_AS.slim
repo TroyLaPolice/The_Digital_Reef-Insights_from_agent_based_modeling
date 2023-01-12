@@ -17,9 +17,9 @@ initialize()
 	// Carrying Capacities and Pop Sizes:
 	// ***********************************
 	if (!exists("DS"))
-		defineConstant("DS", 10); // Down scale the simulation ( Must be >= 1)
+		defineConstant("DS", 1); // Down scale the simulation ( Must be >= 1)
 	if (!exists("SN"))
-		defineConstant("SN", integerDiv(3000, DS)); // Starting number of individuals
+		defineConstant("SN", integerDiv(3000 / DS)); // Starting number of individuals
 	if (!exists("cervicornisK"))
 		defineConstant("cervicornisK", 1500 / DS); // carrying capacity for cervicornis 
 	if (!exists("palmataK"))
