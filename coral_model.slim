@@ -19,7 +19,7 @@ initialize()
 	if (!exists("DS"))
 		defineConstant("DS", 1); // Down scale the simulation ( Must be >= 1)
 	if (!exists("SN"))
-		defineConstant("SN", integerDiv(3000 / DS)); // Starting number of individuals
+		defineConstant("SN", integerDiv(3000, DS)); // Starting number of individuals
 	if (!exists("cervicornisK"))
 		defineConstant("cervicornisK", 1500 / DS); // carrying capacity for cervicornis 
 	if (!exists("palmataK"))
@@ -29,7 +29,7 @@ initialize()
 	if (!exists("initial_ratio"))
 		defineConstant("initial_ratio", 0.5); // percentage of inital population that is palmata (used in initilization step of sim)
 	
-	// Larvae Dispersal:
+	// Movement and interaction and competition:
 	// ***********************************
 	if (!exists("SDX"))
 		defineConstant("SDX", 10); // Movement standard diviation (sigma) for distribution of distances sampled from in the x direction (ENTER IN KILOMETERS)
@@ -39,15 +39,15 @@ initialize()
 		defineConstant("meanX", 0); // Movement mean for distribution of distances sampled from in the x direction (ENTER IN KILOMETERS)
 	if (!exists("meanY"))
 		defineConstant("meanY", 0); // Movement mean for distribution of distances sampled from in the y direction (ENTER IN KILOMETERS)
-
-	// Mating and settlement rate params:
+	
+	// Mating rate params:
 	// ***********************************
 	if (!exists("settle_cer"))
-		defineConstant("settle_cer", 0.02); // Settlement for cervicornis X cervicornis cross
+		defineConstant("settle_cer", 0.022308); // Settlement for cervicornis X cervicornis cross
 	if (!exists("settle_pal"))
-		defineConstant("settle_pal", 0.02); // Settlement for palmata X palmata cross
+		defineConstant("settle_pal", 0.0351); // Settlement for palmata X palmata cross
 	if (!exists("settle_pro"))
-		defineConstant("settle_pro", 0.02); // Settlement for a prolifera
+		defineConstant("settle_pro", 0.07215); // Settlement for a prolifera
 	if (!exists("MD"))
 		defineConstant("MD", 0.6); // Mating distance (ENTER IN KILOMETERS)
 	if (!exists("cer_cer"))
@@ -56,11 +56,16 @@ initialize()
 		defineConstant("pal_pal", 0.705); // Mating pref for palmata X palmata
 	if (!exists("pro_pro"))
 		defineConstant("pro_pro", 0.5); // Mating pref for prolifera X prolifera
+	if (!exists("random_initial_settle"))
+		defineConstant("random_initial_settle", 0); // 0 = non-random initial settle, 1 = random initial settle
+	if (!exists("habitat_pref"))
+		defineConstant("habitat_pref", 0); // How much individuals prefer to settle near like individuals (proxy for habitat preference)
+	if (!exists("SD"))
+		defineConstant("SD", 1); // Settlement distance if there is habitat preference - will search for like inds within SD of the settlement spot
 	
 	// ---------------------------------------------------
 	// RUN TIME PREFERENCE PARAMETERS
 	// ---------------------------------------------------
-	
 	// Determine Coloring Schemes:
 	// ***********************************	
 	defineConstant("Color_scheme", 1); // Parameter of 0 = Genomic Coloring, 1 = Phenotypic Coloring
@@ -72,6 +77,7 @@ initialize()
 	defineConstant("file_extention", ".png");
 	defineConstant("simple", wd + "/simple.png"); // File Path to Map Image
 	defineConstant("LaughingBirdCaye", wd + "/laughing_bird_caye.png"); // File Path to Map Image
+	
 	// Map citation: https://www.laughingbird.org/park2.html
 	defineConstant("custom_map", wd + custom_map_filename); // File Path to Map Image
 	
@@ -88,10 +94,8 @@ initialize()
 	m1.convertToSubstitution = F;
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 267); // Genome Size in MB
-	
 	initializeMutationType("m2", 0.5, "f", 0.0); // Speciation Loci
 	m2.convertToSubstitution = F;
-	
 	initializeMutationRate(0.0); // Zero Mutations
 	rates = c(0.0447, 0.5, 0.0359, 0.5, 0.05, 0.5, 0.0453, 0.5, 0.05, 0.5, 0.0419, 0.5, 0.0505, 0.5, 0.0469, 0.5, 0.0424, 0.5, 0.0518, 0.5, 0.0542, 0.5, 0.0501, 0.5, 0.041, 0.5, 0.0632);
 	ends = c(27, 28, 54, 55, 76, 77, 95, 96, 115, 116, 136, 137, 152, 153, 167, 168, 186, 187, 205, 206, 222, 223, 239, 240, 253, 254, 267); // Recombination Rates and Chromosome Initialization
@@ -101,7 +105,10 @@ initialize()
 	//  INTERACTIONS --> Interaction Initialization
 	// ---------------------------------------------------
 	// spatial mate choice
-	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=MD);
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=MD);
+	
+	// settle distance
+	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=SD);
 }
 
 1 early()
@@ -111,16 +118,15 @@ initialize()
 
 2: first()
 {
-	i2.evaluate(p1); // Initialize mating interaction
+	i1.evaluate(p1); // Initialize mating interaction
+	i2.evaluate(p1); // Initialize settling interaction if habitat pref
 }
 
 1 early()
 {
-	
 	// -----------------------------------------------------------------------------
 	//  Before sim starts ---> Initalize map and create initial starting individuals
 	// -----------------------------------------------------------------------------
-	
 	// Check user input for what style map
 	if (map_style == 0)
 		mapImage = Image(simple); //simple
@@ -144,8 +150,19 @@ initialize()
 	}
 	
 	// Define z param in individuals (phenotype, 0 = cervicornis, 1 = palmata, 2 = prolifera)
-	palmata_ind = p1.sampleIndividuals(asInteger(initial_ratio*SN));
-	palmata_ind.z = 1;
+	if (random_initial_settle == 1)
+	{
+		palmata_ind = p1.sampleIndividuals(asInteger(initial_ratio * SN));
+		palmata_ind.z = 1;
+	}
+	else
+	{
+		p1.individuals[p1.individuals.x < (initial_ratio * map_size_width)].z = 1;
+		
+		print(p1.individuals[p1.individuals.z == 1].length());
+		print(initial_ratio * p1.individuals.length());
+		print("------------");
+	}
 	
 	// Tag genomic ancestry of palmata with marker mutations (m1)
 	// Each marker mutation represents 1Mb
@@ -244,7 +261,6 @@ initialize()
 	indpalmata.genomes.addNewMutation(m2, 0.0, 264:264);
 	indpalmata.genomes.addNewMutation(m2, 0.0, 267:267);
 	
-	
 	// Add color to represent phenotype
 	for (i in p1.individuals)
 	{
@@ -253,7 +269,6 @@ initialize()
 			// --------------------------------
 			// Color Based on Discrete Species
 			// --------------------------------
-			
 			// Add color to represent phenotype
 			if (i.z == 0) // cervicornis
 				i.color = "red"; //cervicornis = red
@@ -267,7 +282,6 @@ initialize()
 			// -------------------------------
 			// Color Based on Percent Ancestry
 			// -------------------------------
-			
 			ancestry = i.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2);
 			i.color = rgb2color(hsv2rgb(c(0.6, 1.0, ancestry)));
 		}
@@ -276,16 +290,14 @@ initialize()
 
 1 early()
 {
-	
 	// -----------------------------------------------
 	//  Before sim starts ---> Initialize output files
 	// -----------------------------------------------
-	
 	// log runtime params
-	param_string = paste(SN, cervicornisK, palmataK, proliferaK, SDX, SDY, initial_ratio);
+	param_string = paste(DS, SN, cervicornisK, palmataK, proliferaK, SDX, SDY, meanX, meanY, initial_ratio, settle_cer, settle_pal, settle_pro);
 	
 	// Runtime params file headings - write to file
-	param_heading = paste("SN cervicornisK palmataK proliferaK SDX SDY initial_ratio");
+	param_heading = paste("DS, SN cervicornisK palmataK proliferaK SDX SDY meanX meanY initial_ratio settle_cer settle_pal settle_pro");
 	
 	// Runtime params - write to file
 	output_runtime_file_name = ("/sim_runtime_params_" + output_name + ".tsv");
@@ -293,7 +305,7 @@ initialize()
 	writeFile(wd + output_runtime_file_name, param_string, append=T);
 	
 	// Population stats file headings - write to file
-	stats_header_string = paste("Year", "PopulationSize", "Total_palmata", "Total_cervicornis", "Total_prolifera", "Ratio_palmata_to_cervicornis", "cervicornis_ancestry_in_palmata", "palmata_ancestry_in_cervicornis", "palmata_ancestry_in_prolifera", "cervicornis_ancestry_in_prolifera" ,sep=",");
+	stats_header_string = paste("Year", "PopulationSize", "Total_palmata", "Total_cervicornis", "Total_prolifera", "Ratio_palmata_to_cervicornis", "cervicornis_ancestry_in_palmata", "palmata_ancestry_in_cervicornis", "palmata_ancestry_in_prolifera", "cervicornis_ancestry_in_prolifera", sep=",");
 	output_stats_file_name = ("/sim_pop_stats_per_year_" + output_name + ".csv");
 	writeFile(wd + output_stats_file_name, stats_header_string, append=T);
 }
@@ -303,48 +315,43 @@ reproduction()
 	// ---------------------------------------------------
 	//  MATING --> Individuals mate with those close by
 	// ---------------------------------------------------
-	
 	// creates a vector of neighboring individuals, within the max distance
-	mates = i2.nearestInteractingNeighbors(individual, p1.individuals.length());
-	
+	mates = i1.nearestInteractingNeighbors(individual, p1.individuals.length());
 	if (mates.size()) // Runs if there are possible mates near by
 	{
-		// Sets up a vector that checks if the individuals in the surrounding area are of like phenotype (i.e. if their z params are the same)
-		mates_similarity_bool = mates.z == individual.z;
-		mates_similarity = asFloat(mates_similarity_bool); // convert to float to allow for mutation of the vector (replace with probabilities of type float)
-		
 		// Generates a vector of probabilites of the individual mating with a particular mate given their phenotype
-		
 		if (individual.z == 0) // individual == cervicornis
-		{
-			mates_similarity[mates_similarity_bool == T] = cer_cer; // selection probability for mates that are also cervicornis
-			mates_similarity[mates_similarity_bool == F] = (1 - cer_cer); // selection probability for mates that are not cervicornis
-		}
+			MP = cer_cer; // assortative mating probabability for cervicornis
 		else if (individual.z == 1) // individual == palmata
-		{
-			mates_similarity[mates_similarity_bool == T] = pal_pal; // selection probability for mates that are also palmata
-			mates_similarity[mates_similarity_bool == F] = (1 - pal_pal); // selection probability for mates that are not palmata
-		}
+			MP = pal_pal; // assortative mating probabability for palmata
 		else if (individual.z == 2) // individual == prolifera
+			MP = pro_pro; // assortative mating probabability for prolifera
+		assort_prob = c(MP, (1 - MP)); // Proabaility of assortatively mating
+		choice = c(0, 1); // Vector of choices, will the individual mate assortatively (0) or not (1)
+		assort_pref = sample(choice, 1, weights=assort_prob); // Select a mate
+		if (assort_pref == 1) // This individual has the possibility of mating with unlike individuals
 		{
-			mates_similarity[mates_similarity_bool == T] = pro_pro; // selection probability for mates that are also prolifera
-			mates_similarity[mates_similarity_bool == F] = (1 - pro_pro); // selection probability for mates would result in a backcross
+			// Samples an individual to mate with from the whole population
+			mate = sample(mates, 1);
 		}
-		
-		if (sum(mates_similarity) != 0)
+		else // This individual only mates assortatively
 		{
-			// Samples an individual in the population based on the assortative mating probabilities. 
-			mate = sample(mates, 1, weights=mates_similarity);
-			
+			possible_mates = mates[mates.z == individual.z]; // Select only like individuals
+			if (possible_mates.size()) // Runs if there are possible mates near by
+				mate = sample(possible_mates, 1); // Select a mate
+			else
+				mate = NULL; // If no mates possible, NULL
+		}
+		if (isNULL(mate) != T)
+		{
 			// select proper settlement rate:
 			// ------------------------------
-			
 			if (individual.z == 0) // if individual is cervicornis
 			{
 				if (mate.z == 0) // if mate is cervicornis
 					settle = settle_cer; // settle at cervicornis rate
 				else if (mate.z == 1) // if mate is palmata
-					settle = settle_pro;  // settle at prolifera rate
+					settle = settle_pro; // settle at prolifera rate
 				else if (mate.z == 2) // if mate is prolifera
 					settle = settle_cer; // settle at cervicornis rate
 			}
@@ -386,20 +393,17 @@ reproduction()
 					species_loci = offspring.countOfMutationsOfType(m2);
 					
 					// Determine species of the offspring based on ancestry threshold
-					
 					if (species_loci >= 162)
 						offspring.z = 1; // offspring is palmata
 					else if (species_loci <= 18)
 						offspring.z = 0; // offspring is cervicornis
 					else
-						offspring.z = 2;  // offspring is prolifera
-					
+						offspring.z = 2; // offspring is prolifera
 					if (Color_scheme == 1) // Coloring in GUI of individuals
 					{
 						// --------------------------------
 						// Color Based on Discrete Species
 						// --------------------------------
-						
 						// Add color to represent phenotype
 						if (offspring.z == 0) // cervicornis
 							offspring.color = "red"; //cervicornis = red
@@ -413,7 +417,6 @@ reproduction()
 						// -------------------------------
 						// Color Based on Percent Ancestry
 						// -------------------------------
-						
 						// Calculate percent ancestry
 						ancestry = offspring.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2);
 						
@@ -429,21 +432,45 @@ reproduction()
 					//  MOVEMENT --> How larvae disperse
 					// ---------------------------------------------------
 					
-					// How far individuals diffuse away
-					do
-					{
-						// Normal multivariate distribution dictating dispersal to pick new coordinates in the movement range
-						coordinate_matrix = rmvnorm(1, c(meanX, meanY), matrix(c(SDX^2, 0, 0, SDY^2), nrow=2));
-						coordinates = c(coordinate_matrix[0], coordinate_matrix[1]);
-						
-						// Determine the new positional coordinates
-						newPos = offspring.spatialPosition + coordinates;
-					}
-					while (!p1.pointInBounds(newPos) | p1.spatialMapValue("map_object", newPos) == 0.0); // While not bounds
+					habitat_pref_prob = c(habitat_pref, (1 - habitat_pref)); // Proabaility of the individual having a habitat preference
+					choice = c(0, 1); // Vector of choices, will the individual will have a habitat preference (1) or not (0)
+					habitat_pref_choice = sample(choice, 1, weights=habitat_pref_prob); // Select if the individual will have a habitat preference (1) or not (0) based on the weights
 					
-					// Set settle point for offspring
-					offspring.setSpatialPosition(newPos);
-				
+					if (habitat_pref_choice == 0)
+					{
+						do
+						{
+							// Normal multivariate distribution dictating dispersal to pick new coordinates in the movement range
+							coordinate_matrix = rmvnorm(1, c(meanX, meanY), matrix(c(SDX^2, 0, 0, SDY^2), nrow=2));
+							coordinates = c(coordinate_matrix[0], coordinate_matrix[1]);
+							
+							// Determine the new positional coordinates
+							newPos = offspring.spatialPosition + coordinates;
+							
+							// If there are not at least 50% like individuals in the surrounding area the individual with the habitat preference will not settle
+							neighbors = i2.nearestNeighborsOfPoint(newPos, p1, p1.individuals.length());
+							like_neighbors = neighbors[neighbors.z == offspring.z];
+						
+						}
+						while (!p1.pointInBounds(newPos) | p1.spatialMapValue("map_object", newPos) == 0.0 | (like_neighbors.length() < (0.5 * neighbors.length())));
+						offspring.setSpatialPosition(newPos); // Set settle point for offspring
+					}
+					else
+					{
+						do
+						{
+							// Normal multivariate distribution dictating dispersal to pick new coordinates in the movement range
+							coordinate_matrix = rmvnorm(1, c(meanX, meanY), matrix(c(SDX^2, 0, 0, SDY^2), nrow=2));
+							coordinates = c(coordinate_matrix[0], coordinate_matrix[1]);
+							
+							// Determine the new positional coordinates
+							newPos = offspring.spatialPosition + coordinates;
+							
+							
+						}
+						while (!p1.pointInBounds(newPos) | p1.spatialMapValue("map_object", newPos) == 0.0);
+						offspring.setSpatialPosition(newPos); // Set settle point for offspring
+					}
 				}
 			}
 		}
@@ -455,7 +482,6 @@ late()
 	// --------------------------------------------------------------------------------
 	//  MORTALITY ---> Density dependent competion avoids exponential population growth
 	// --------------------------------------------------------------------------------
-	
 	// Initalize vectors of the species
 	cervicornis_inds = p1.individuals[p1.individuals.z == 0];
 	palmata_inds = p1.individuals[p1.individuals.z == 1];
@@ -469,11 +495,9 @@ late()
 
 1:10000 late()
 {
-	
 	// -------------------------------------------
 	//  Each Generation ---> Output stats to files
 	// -------------------------------------------
-	
 	// provide feedback on progress for command line users
 	year_counter = paste("Simulation Year: ", sim.cycle);
 	print(year_counter);
