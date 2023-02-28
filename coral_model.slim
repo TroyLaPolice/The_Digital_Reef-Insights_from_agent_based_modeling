@@ -433,10 +433,10 @@ reproduction()
 					// ---------------------------------------------------
 					
 					habitat_pref_prob = c(habitat_pref, (1 - habitat_pref)); // Proabaility of the individual having a habitat preference
-					choice = c(0, 1); // Vector of choices, will the individual will have a habitat preference (1) or not (0)
+					choice = c(1, 0); // Vector of choices, will the individual will have a habitat preference (1) or not (0)
 					habitat_pref_choice = sample(choice, 1, weights=habitat_pref_prob); // Select if the individual will have a habitat preference (1) or not (0) based on the weights
 					
-					if (habitat_pref_choice == 0)
+					if (habitat_pref_choice == 1)
 					{
 						do
 						{
