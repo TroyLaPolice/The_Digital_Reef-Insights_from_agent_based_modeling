@@ -17,17 +17,19 @@ initialize()
 	// Carrying Capacities, Mortality and Pop Sizes:
 	// ***********************************
 	if (!exists("DS"))
-		defineConstant("DS", 11); // Down scale the simulation ( Must be >= 1)
+		defineConstant("DS", 2); // Down scale the simulation ( Must be >= 1)
 	if (!exists("SN"))
 		defineConstant("SN", integerDiv(10000, DS)); // Starting number of individuals
 	if (!exists("K"))
 		defineConstant("K", 262 / DS); // carrying capacity for cervicornis (ENTER IN INDIVIDUALS PER KM2) for density dependent scaling
 	if (!exists("base_mortality_rate"))
-		defineConstant("base_mortality_rate", 0.25); // mortality rate in non-bleaching summers
+		defineConstant("base_mortality_rate", 0.025); // mortality rate in non-bleaching summers
 	if (!exists("heat_resistant_mortality_modifier"))
-		defineConstant("heat_resistant_mortality_modifier", 0.05);  // Beneficial mutation heat resistance mutation reduces the <mortality_rate> by <heat_resistant_mortality_modifier>
+		defineConstant("heat_resistant_mortality_modifier", 0);  // Beneficial mutation heat resistance mutation reduces the <mortality_rate> by <heat_resistant_mortality_modifier>
+	if (!exists("bleaching_rate"))
+		defineGlobal("bleaching_rate", 0.167); // Starting 2016 bleaching rate	
 	if (!exists("initial_ratio"))
-		defineConstant("initial_ratio", 0.1); // percentage of inital population that is palmata (used in initilization step of sim)
+		defineConstant("initial_ratio", 0.5); // percentage of inital population that is palmata (used in initilization step of sim)
 	
 	// Movement and interaction and competition:
 	// ***********************************
@@ -35,6 +37,10 @@ initialize()
 		defineConstant("SDX", 10); // Movement standard diviation (sigma) for distribution of distances sampled from in the x direction (ENTER IN KILOMETERS)
 	if (!exists("SDY"))
 		defineConstant("SDY", 10); // Movement standard diviation (sigma) for distribution of distances sampled from in the y direction (ENTER IN KILOMETERS)
+	if (!exists("clonal_SDX"))
+		defineConstant("clonal_SDX", 1); // Movement standard diviation (sigma) for distribution of distances sampled from in the x direction (ENTER IN KILOMETERS)
+	if (!exists("clonal_SDY"))
+		defineConstant("clonal_SDY", 1); // Movement standard diviation (sigma) for distribution of distances sampled from in the y direction (ENTER IN KILOMETERS)
 	if (!exists("meanX"))
 		defineConstant("meanX", 0); // Movement mean for distribution of distances sampled from in the x direction (ENTER IN KILOMETERS)
 	if (!exists("meanY"))
@@ -45,13 +51,13 @@ initialize()
 	// Mating rate params:
 	// ***********************************
 	if (!exists("reproduce_cer"))
-		defineConstant("reproduce_cer", 25); // reproduction for cervicornis X cervicornis cross
+		defineConstant("reproduce_cer", 0.75); // reproduction for cervicornis X cervicornis cross
 	if (!exists("reproduce_pal"))
-		defineConstant("reproduce_pal", 25); // reproduction for palmata X palmata cross
+		defineConstant("reproduce_pal", 0.75); // reproduction for palmata X palmata cross
 	if (!exists("reproduce_pro"))
-		defineConstant("reproduce_pro", 1); // reproduction for a prolifera
+		defineConstant("reproduce_pro", 0.1); // reproduction for hybrid cross. So how many successful offspring are possible if the parentage is mixed.
 	if (!exists("clone_rate"))
-		defineConstant("clone_rate", 50); // reproduction for clonal repro
+		defineConstant("clone_rate", 1); // reproduction for clonal repro
 	if (!exists("MD"))
 		defineConstant("MD", 0.6); // Mating distance (ENTER IN KILOMETERS)
 	if (!exists("cer_cer"))
@@ -59,7 +65,7 @@ initialize()
 	if (!exists("pal_pal"))
 		defineConstant("pal_pal", 0.46); // Mating pref for palmata X palmata
 	if (!exists("pro_backcross"))
-		defineConstant("pro_backcross", 0.9999); // Mating pref for prolifera X prolifera
+		defineConstant("pro_backcross", 0.999); // Mating pref for prolifera X prolifera
 	if (!exists("random_initial_settle"))
 		defineConstant("random_initial_settle", 1); // 0 = non-random initial settle, 1 = random initial settle
 	
@@ -168,6 +174,7 @@ initialize()
 	// Tag genomic ancestry of palmata with marker mutations (m1)
 	// Each marker mutation represents 1Mb
 	indpalmata = p1.individuals[p1.individuals.z == 1];
+	indcervicornis = p1.individuals[p1.individuals.z == 0];
 	indpalmata.genomes.addNewMutation(m1, 0.0, 0:267);
 	
 	// Add speciation loci
@@ -263,7 +270,8 @@ initialize()
 	indpalmata.genomes.addNewMutation(m2, 0.0, 267:267);
 	
 	// Add random beneficial loci
-	indpalmata.genomes.addNewMutation(m3, 0.0, 130);
+	//indpalmata.genomes.addNewMutation(m3, 0.0, 130);
+	indcervicornis.genomes.addNewMutation(m3, 0.0, 130);
 	
 	// Add color to represent phenotype
 	for (i in p1.individuals)
@@ -298,10 +306,10 @@ initialize()
 	//  Before sim starts ---> Initialize output files
 	// -----------------------------------------------
 	// log runtime params
-	param_string = paste(DS, SN, K, SDX, SDY, meanX, meanY, initial_ratio, reproduce_cer, reproduce_pal, reproduce_pro, base_mortality_rate);
+	param_string = paste(DS, SN, K, SDX, SDY, meanX, meanY, initial_ratio, reproduce_cer, reproduce_pal, reproduce_pro, base_mortality_rate, heat_resistant_mortality_modifier);
 	
 	// Runtime params file headings - write to file
-	param_heading = paste("DS, SN K SDX SDY meanX meanY initial_ratio reproduce_cer reproduce_pal reproduce_pro, base_mortality_rate");
+	param_heading = paste("DS, SN K SDX SDY meanX meanY initial_ratio reproduce_cer reproduce_pal reproduce_pro, base_mortality_rate, heat_resistant_mortality_modifier");
 	
 	// Runtime params - write to file
 	output_runtime_file_name = ("/sim_runtime_params_" + output_name + ".tsv");
@@ -309,7 +317,7 @@ initialize()
 	writeFile(wd + output_runtime_file_name, param_string, append=T);
 	
 	// Population stats file headings - write to file
-	stats_header_string = paste("Year", "PopulationSize", "Total_palmata", "Total_cervicornis", "Total_prolifera", "Ratio_palmata_to_cervicornis", "cervicornis_ancestry_in_palmata", "palmata_ancestry_in_cervicornis", "palmata_ancestry_in_prolifera", "cervicornis_ancestry_in_prolifera", "beneficial_in_prolifera", "beneficial_in_palmata", "beneficial_in_cervicornis",  sep=",");
+	stats_header_string = paste("Year", "PopulationSize", "Total_palmata", "Total_cervicornis", "Total_prolifera", "Ratio_palmata_to_cervicornis", "cervicornis_ancestry_in_palmata", "palmata_ancestry_in_cervicornis", "palmata_ancestry_in_prolifera", "cervicornis_ancestry_in_prolifera", "beneficial_in_prolifera", "beneficial_in_palmata", "beneficial_in_cervicornis", "bleaching_rate", sep=",");
 	output_stats_file_name = ("/sim_pop_stats_per_year_" + output_name + ".csv");
 	writeFile(wd + output_stats_file_name, stats_header_string, append=T);
 }
@@ -333,7 +341,7 @@ reproduction()
 			// Generates a vector of probabilites of the individual mating with a particular mate given their phenotype
 			if (individual.z == 0) // individual == cervicornis
 			{
-				MP = cer_cer; // assortative mating probabability for cervicornis
+				MP = cer_cer; // assortative mating probability for cervicornis
 				assort_prob = c(MP, (1 - MP)); // Proabaility of assortatively mating
 				choice = c(0, 1); // Vector of choices, will the individual mate assortatively (0) or not (1)
 				assort_pref = sample(choice, 1, weights=assort_prob); // Select a mate
@@ -341,30 +349,38 @@ reproduction()
 			else if (individual.z == 1) // individual == palmata
 			{
 				MP = pal_pal; // assortative mating probabability for palmata
-				assort_prob = c(MP, (1 - MP)); // Proabaility of assortatively mating
+				assort_prob = c(MP, (1 - MP)); // Proability of assortatively mating
 				choice = c(0, 1); // Vector of choices, will the individual mate assortatively (0) or not (1)
 				assort_pref = sample(choice, 1, weights=assort_prob); // Select a mate
 			}
 			else if (individual.z == 2) // individual == prolifera
 			{
 				MP = pro_backcross; // assortative mating probabability for prolifera
-				assort_prob = c(MP, (1 - MP)); // Proabaility of assortatively mating
+				assort_prob = c(MP, (1 - MP)); // Probability of assortatively mating
 				choice = c(1, 0); // Vector of choices, will the individual mate assortatively (0) or not (1)
 				assort_pref = sample(choice, 1, weights=assort_prob); // Select a mate
 			}
+			
+			
 			if (assort_pref == 1) // This individual has the possibility of mating with unlike individuals
 			{
 				// Samples an individual to mate with from the whole population
-				if (individual.z == 2)
+				if (individual.z == 2) // If individual is a prolifera we have to do this a bit differently.
 				{
-					possible_mates = mates[mates.z != individual.z]; // Select only like individuals
+					possible_mates = mates[mates.z != individual.z]; // Select unlike mates becuase we are setting the rate of backcrossing instead of the way we do it for the other parentals.
 					if (possible_mates.size()) // Runs if there are possible mates near by
 						mate = sample(possible_mates, 1); // Select a mate
 					else
 						mate = NULL; // If no mates possible, NULL
 				}
 				else
-					mate = sample(mates, 1);
+				{
+					possible_mates = mates[mates.z == 0 | mates.z == 1]; // Becuase we are specifying the backgcrossing rate we do not want to have additional backcrosses where the mate is prolifera.
+					if (possible_mates.size()) // Runs if there are possible mates near by
+						mate = sample(possible_mates, 1); // Select a mate- the other two species just mate with everybody in the population who is not prolifera
+					else
+						mate = NULL; // If no mates possible, NULL  
+				}
 			}
 			else // This individual only mates assortatively
 			{
@@ -374,6 +390,8 @@ reproduction()
 				else
 					mate = NULL; // If no mates possible, NULL
 			}
+			
+			
 			if (isNULL(mate) != T)
 			{
 				// select proper reproduction rate:
@@ -430,7 +448,7 @@ reproduction()
 						
 						// Determine local density
 						local_density = (neighbors / S);
-						if (p1.pointInBounds(newPos) & p1.spatialMapValue("map_object", newPos) != 0.0 & local_density < K)
+						if (p1.pointInBounds(newPos) & p1.spatialMapValue("map_object", newPos) != 0.0 & local_density < K) // Only generates an offspring if density is below K and point is on a suitable reef
 						{
 							// Generates an offspring
 							offspring = subpop.addCrossed(individual, mate);
@@ -492,7 +510,7 @@ reproduction()
 			for (i in seqLen(rpois(1, clone_rate)))
 			{
 				// Normal multivariate distribution dictating dispersal to pick new coordinates in the movement range
-				coordinate_matrix = rmvnorm(1, c(meanX, meanY), matrix(c(SDX^2, 0, 0, SDY^2), nrow=2));
+				coordinate_matrix = rmvnorm(1, c(meanX, meanY), matrix(c(clonal_SDX^2, 0, 0, clonal_SDY^2), nrow=2));
 				coordinates = c(coordinate_matrix[0], coordinate_matrix[1]);
 				
 				// Determine the new positional coordinates
@@ -567,20 +585,36 @@ early()
 	K_total = K * (map_size_length * map_size_width);
 	inds.fitnessScaling = K_total / competition;
 	
+	// Bleaching event or not?
+	// Starting with 2016 bleaching rate calculate the current bleaching probability
+	// Frequency of bleaching increases each year by 4%
+	new_bleaching_rate = (bleaching_rate + (bleaching_rate*0.04));
+	
+	// Can't be larger than 100% of the time
+	if (new_bleaching_rate > 1)
+		new_bleaching_rate = 1;
+		
+	// Redefine the global value with updated value	
+	defineGlobal("bleaching_rate", new_bleaching_rate);
+	
+	bleaching_prob = c(new_bleaching_rate, (1 - new_bleaching_rate)); // Probability of bleaching summer
+	choices = c(0, 1); // Vector of choices, will be a bleaching event (0) or not (1)
+	bleaching_year = sample(choices, 1, weights=bleaching_prob); // Select from choices
+	
 	// In especially warm summers, bleaching mortality will be higher
-	// Cyclical bleaching events (such as el nino) In sim, every six years will be higher mortality
-	if (sim.cycle % 4 == 0)
+	// In sim, every bleaching year, there will be higher mortality
+	if (bleaching_year == 0)
 	{
-		motality_rate = base_mortality_rate * 3; // Elevated population morality rate in warm summer
+		motality_rate = base_mortality_rate * 10; // Elevated population morality rate in warm summer
 		
 		// Loop through individuals in population and check for beneficial mutations, modify fitness accordingly
 		for (ind in inds)
 		{
 			if (ind.countOfMutationsOfType(m3) == 1) // If ind is heterozygous for beneficial mutation
 				// Individual is partially resistant due to heterozygous for beneficial mutation
-				new_motality_rate = (motality_rate - (heat_resistant_mortality_modifier/2)); // reduce mortality chance by <heat_resistant_mortality_modifier> divided by 2
+				new_motality_rate = (motality_rate * ((1-heat_resistant_mortality_modifier))); // having one copy reduces mortality chance by <heat_resistant_mortality_modifier>
 			else if (ind.countOfMutationsOfType(m3) == 2)  // If ind is homozygous for beneficial mutation
-				new_motality_rate = (motality_rate - (heat_resistant_mortality_modifier)); // reduce mortality chance by <heat_resistant_mortality_modifier>
+				new_motality_rate = (motality_rate * ((1-heat_resistant_mortality_modifier)^2)); // having two copies reduces by double <heat_resistant_mortality_modifier>
 			else
 				new_motality_rate = motality_rate;
 				
@@ -598,9 +632,26 @@ early()
 		// If not a heavy bleaching year, beneficial mutation does not confer selective advantage
 		motality_rate = base_mortality_rate;
 		
-		// Sample individuals from population for random mortality
-		mortality = asInteger((motality_rate * sim.subpopulations.individuals.length()));
-		sample(sim.subpopulations.individuals, mortality).fitnessScaling = 0;
+		// Loop through individuals in population and check for beneficial mutations, modify fitness accordingly
+		for (ind in inds)
+		{
+			if (ind.countOfMutationsOfType(m3) == 1) // If ind is heterozygous for beneficial mutation
+				// Individual is partially resistant to bleaching due to heterozygous for beneficial mutation but will suffer partitally increased mortality otherwise
+				new_motality_rate = (motality_rate * ((1+heat_resistant_mortality_modifier))); // having one copy increases mortality chance by <heat_resistant_mortality_modifier>
+			else if (ind.countOfMutationsOfType(m3) == 2)  // If ind is homozygous for beneficial mutation
+				// Individual is resistant to bleaching but will suffer increased mortality otherwise
+				new_motality_rate = (motality_rate * ((1+heat_resistant_mortality_modifier)^2)); // having two copies increases by double <heat_resistant_mortality_modifier>
+			else
+				new_motality_rate = motality_rate;
+				
+		mortality_prob = c(new_motality_rate, (1 - new_motality_rate)); // Proabaility of survival
+		choices = c(0, 1); // Vector of choices, will the individual die (0) or survive (1)
+		mortality = sample(choices, 1, weights=mortality_prob); // Select from choices
+		
+		// If individual dies in bleaching event, set fitness to zero
+		if (mortality == 0)
+			ind.fitnessScaling = 0;
+		}
 	}
 
 
@@ -679,7 +730,7 @@ early()
 		beneficial_in_cer = 0.0;
 		
 	// write outputs
-	output_string = paste(sim.cycle, pop_size, num_palmata, num_cervicornis, num_prolifera, ratio, cervicornis_ancestry_palmata, palmata_ancestry_cervicornis, palmata_ancestry_prolifera, cervicornis_ancestry_prolifera, beneficial_in_pro, beneficial_in_pal, beneficial_in_cer, sep=",");
+	output_string = paste(sim.cycle, pop_size, num_palmata, num_cervicornis, num_prolifera, ratio, cervicornis_ancestry_palmata, palmata_ancestry_cervicornis, palmata_ancestry_prolifera, cervicornis_ancestry_prolifera, beneficial_in_pro, beneficial_in_pal, beneficial_in_cer, bleaching_rate, sep=",");
 	output_stats_file_name = ("/sim_pop_stats_per_year_" + output_name + ".csv");
 	writeFile(wd + output_stats_file_name, output_string, append=T);
 }
