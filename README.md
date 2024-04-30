@@ -17,7 +17,7 @@ This R script is provided a path to the directory containing the output files fr
 ###### write_mutation_code_lines.py
 This is a simple python script that was used to space equidistant speciation loci across the genome. Writes out slim code that was added to the model.
 
-##### map_files
+##### map_files:
 
 ###### laughing_bird_caye.png
 This is the map file used to simulate realistic reef landscape on the caye
