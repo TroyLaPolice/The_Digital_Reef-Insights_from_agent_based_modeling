@@ -3,13 +3,14 @@ library(data.table)
 library(ggplot2)
 library(gtools)
 library(dplyr)
+library(ggbeeswarm)
 
 # ----------------------------------------------------------------------------------------------------------------
 # Set inputs and read in files to be used for analysis
 # ----------------------------------------------------------------------------------------------------------------
 
 # Set input params
-setwd("/home/tml5905/Documents/CoralPopulationSimulation/runs/individual_K_other_species_compete_3")
+setwd("/home/tml5905/Documents/CoralPopulationSimulation/runs/ben_mut_new_assort_morality10x_evol_trade_ben05")
 
 # Specify and select files
 file_names = list.files(".", pattern="sim_pop*", full.names = TRUE)
@@ -20,6 +21,17 @@ if (length(file_names) != 0)
   file_names = mixedsort(file_names)
   # Read in File
   files = lapply(file_names, read.csv)
+}
+
+# Specify and select files
+ancestry_sample_names = list.files(".", pattern="sim_ancestry_sample*", full.names = TRUE)
+
+if (length(ancestry_sample_names) != 0)
+{
+  # Sort Files
+  ancestry_sample_names = mixedsort(ancestry_sample_names)
+  # Read in File
+  ancestry_sample_files = lapply(ancestry_sample_names, read.csv)
 }
 
 # -----------------------------------------
@@ -55,6 +67,7 @@ if (length(file_names) != 0)
   sim_data[, Map_Style_n := as.numeric(gsub(map_style, pattern = ".*\\s(.+)", replacement = "\\1"))]
   sim_data[, starting_number_n := as.numeric(gsub(starting_number, pattern = ".*\\s(.+)", replacement = "\\1"))]
   sim_data[, initial_palmata_n := as.numeric(gsub(initial_palmata, pattern = ".*\\s(.+)", replacement = "\\1"))]
+  sim_data[, other_species_compete_n := as.numeric(gsub(other_species_compete, pattern = ".*\\s(.+)", replacement = "\\1"))]
   #sim_data[, heat_resistant_mortality_modifier_n := as.numeric(gsub(heat_resistant_mortality_modifier, pattern = ".*\\s(.+)", replacement = "\\1"))]
   #sim_data[, pro_backcross_n := as.numeric(gsub(pro_backcross, pattern = ".*\\s(.+)", replacement = "\\1"))]
   #sim_data[, reproduce_pro_n := as.numeric(gsub(reproduce_pro, pattern = ".*\\s(.+)", replacement = "\\1"))]
@@ -65,14 +78,42 @@ if (length(file_names) != 0)
   sim_data[palmata_ancestry_in_cervicornis < 0, palmata_ancestry_in_cervicornis := 0]
 }
 
+
+if (length(ancestry_sample_names) != 0)
+{
+  ancestry_sample_data = lapply(1:length(ancestry_sample_files), function(x) 
+  {
+    params = strsplit(as.character(param_file[[1]][x,]), split = "   ")[[1]]
+    params = matrix(params, nrow = 1)
+    colnames(params) = gsub(sapply(strsplit(params, split = " = "), function(x) x[1]), pattern = " ", replacement = "_")
+    data = ancestry_sample_files[[x]]
+    
+    cbind(params, data)
+  }
+  )
+  
+  # Create data table with simulation output data
+  ancestry_sample_data = rbindlist(ancestry_sample_data)
+  
+  # Add columns that remove extra strings in parameter set
+  ancestry_sample_data[, Map_Style_n := as.numeric(gsub(map_style, pattern = ".*\\s(.+)", replacement = "\\1"))]
+  ancestry_sample_data[, starting_number_n := as.numeric(gsub(starting_number, pattern = ".*\\s(.+)", replacement = "\\1"))]
+  ancestry_sample_data[, initial_palmata_n := as.numeric(gsub(initial_palmata, pattern = ".*\\s(.+)", replacement = "\\1"))]
+  ancestry_sample_data[, other_species_compete_n := as.numeric(gsub(other_species_compete, pattern = ".*\\s(.+)", replacement = "\\1"))]
+  #ancestry_sample_data[, heat_resistant_mortality_modifier_n := as.numeric(gsub(heat_resistant_mortality_modifier, pattern = ".*\\s(.+)", replacement = "\\1"))]
+  #ancestry_sample_data[, pro_backcross_n := as.numeric(gsub(pro_backcross, pattern = ".*\\s(.+)", replacement = "\\1"))]
+  #ancestry_sample_data[, reproduce_pro_n := as.numeric(gsub(reproduce_pro, pattern = ".*\\s(.+)", replacement = "\\1"))]
+
+}
+
 # Write to output file
-fwrite(sim_data, file = "all_sim_data.csv", append = FALSE, quote = "auto", sep = ",")
+fwrite(ancestry_sample_data, file = "ancestry_sample_data.csv", append = FALSE, quote = "auto", sep = ",")
 
 # ----------------------------------------------------------------------------------------------------------------
 # Plot data
 # ----------------------------------------------------------------------------------------------------------------
 
-selected_data = sim_data[Year <= 1000]
+selected_data = sim_data[Year <= 1000 & other_species_compete_n == 1.0]
 
 max_cer = max(as.integer(selected_data$Total_cervicornis))
 max_pal = max(as.integer(selected_data$Total_palmata))
@@ -92,19 +133,19 @@ b = diff(primary_y_lim)/diff(secondary_y_lim)
 a = primary_y_lim[1] - b*secondary_y_lim[1]
 
 # ------------------------------------------------------------------------------------------------------------------------------------
-# Runs with individual K
+# Runs with individual K and Various Niche Overlaps
 # ------------------------------------------------------------------------------------------------------------------------------------
 
-beneficial_mutation_tracker = ggplot(sim_data[Year <= 1000]) + 
+beneficial_mutation_tracker = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 1.0]) + 
   scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
   geom_line(aes(as.numeric(Year), beneficial_in_cervicornis, col = "A. cervicornis"), linewidth = 0.75) +
   geom_line(aes(as.numeric(Year), beneficial_in_palmata, col = "A. palmata"), linewidth = 0.75) +
   geom_line(aes(as.numeric(Year), beneficial_in_prolifera, col = "A. prolifera"), linewidth = 0.75) +
   facet_grid(initial_palmata ~ starting_number_n) +
   theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical") + ylab("Mean Beneficial Alleles per Individual")
-ggsave("beneficial_mutation_tracker.png", plot = beneficial_mutation_tracker, units = "in", width = 16.38, height = 10, device="png", dpi=300)
+ggsave("beneficial_mutation_tracker_100pct.png", plot = beneficial_mutation_tracker, units = "in", width = 16.38, height = 10, device="png", dpi=300)
 
-introgressed_ancestry_twoaxis = ggplot(sim_data[Year <= 1000]) + 
+introgressed_ancestry_twoaxis = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 1.0]) + 
   scale_y_continuous("Introgressed Ancestry", sec.axis = sec_axis(~ (. - a)/b, name = "Individuals")) +
   geom_area(aes(Year, palmata_ancestry_in_cervicornis, fill="A. palmata ancestry in A. cervicornis"), alpha = 0.4) +
   geom_area(aes(Year, cervicornis_ancestry_in_palmata, fill="A. cervicornis ancestry in A. palmata"), alpha = 0.4) + 
@@ -115,9 +156,9 @@ introgressed_ancestry_twoaxis = ggplot(sim_data[Year <= 1000]) +
   facet_grid(initial_palmata ~ .) +
   #geom_line(aes(as.numeric(Year), y = a + 15216*b, col = "Population_K")) + 
   theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical")
-ggsave("introgressed_ancestry_twoaxis_all.png", plot = introgressed_ancestry_twoaxis, units = "in", width = 18, height = 10, device="png", dpi=300)
+ggsave("introgressed_ancestry_twoaxis_100pct.png", plot = introgressed_ancestry_twoaxis, units = "in", width = 18, height = 10, device="png", dpi=300)
 
-species_numbers = ggplot(sim_data[Year <= 1000]) + 
+species_numbers = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 1.0]) + 
   scale_y_continuous("Individuals") + 
   scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
   geom_line(aes(as.numeric(Year), Total_cervicornis, col = "A. cervicornis individuals"), linewidth = 0.75) +
@@ -125,7 +166,271 @@ species_numbers = ggplot(sim_data[Year <= 1000]) +
   geom_line(aes(as.numeric(Year), Total_prolifera, col = "A. prolifera individuals"), linewidth = 0.75) +
   facet_grid(initial_palmata ~ .) +
   theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical")
-ggsave("species_numbers.png", plot = species_numbers, units = "in", width = 18, height = 10, device="png", dpi=300)
+ggsave("species_numbers_100pct.png", plot = species_numbers, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+ancestry_distribution = ggplot(ancestry_sample_data[Year %% 200 == 0 & other_species_compete_n == 1.0]) + 
+  geom_beeswarm(aes(X, Ancestry_Proportion, color = (as.factor(Species)))) +
+  facet_grid(initial_palmata ~ Year) +
+  theme_bw()
+ggsave("ancestry_sample_distribution_100pct.png", plot =  ancestry_distribution, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+age_distribution = ggplot(ancestry_sample_data[Year %% 200 == 0 & other_species_compete_n == 1.0]) + 
+  geom_beeswarm(aes(Species, Age, color = (Ancestry_Proportion))) +
+  facet_grid(initial_palmata ~ Year) +
+  theme_bw()
+ggsave("age_ancestry_sample_distribution_100pct.png", plot =  age_distribution, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+selected_data = sim_data[Year <= 1000 & other_species_compete_n == 0.75]
+
+max_cer = max(as.integer(selected_data$Total_cervicornis))
+max_pal = max(as.integer(selected_data$Total_palmata))
+max_pro = max(as.integer(selected_data$Total_prolifera))
+maximums = c(max_cer, max_pal, max_pro)
+max_total_inds = max(maximums)
+
+max_cer_in_pal = max((selected_data$cervicornis_ancestry_in_palmata))
+max_pal_in_cer = max((selected_data$palmata_ancestry_in_cervicornis))
+maximums2 = c(max_cer_in_pal, max_pal_in_cer)
+max_ancestry = max(maximums2)
+
+primary_y_lim = c(0, max_ancestry)
+secondary_y_lim = c(0, max_total_inds)
+
+b = diff(primary_y_lim)/diff(secondary_y_lim)
+a = primary_y_lim[1] - b*secondary_y_lim[1]
+
+beneficial_mutation_tracker = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.75]) + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), beneficial_in_cervicornis, col = "A. cervicornis"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), beneficial_in_palmata, col = "A. palmata"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), beneficial_in_prolifera, col = "A. prolifera"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ starting_number_n) +
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical") + ylab("Mean Beneficial Alleles per Individual")
+ggsave("beneficial_mutation_tracker_75pct.png", plot = beneficial_mutation_tracker, units = "in", width = 16.38, height = 10, device="png", dpi=300)
+
+introgressed_ancestry_twoaxis = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.75]) + 
+  scale_y_continuous("Introgressed Ancestry", sec.axis = sec_axis(~ (. - a)/b, name = "Individuals")) +
+  geom_area(aes(Year, palmata_ancestry_in_cervicornis, fill="A. palmata ancestry in A. cervicornis"), alpha = 0.4) +
+  geom_area(aes(Year, cervicornis_ancestry_in_palmata, fill="A. cervicornis ancestry in A. palmata"), alpha = 0.4) + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), y = a + Total_cervicornis*b, col = "A. cervicornis individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), y = a + Total_palmata*b, col = "A. palmata individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), y = a + Total_prolifera*b, col = "A. prolifera individuals"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ .) +
+  #geom_line(aes(as.numeric(Year), y = a + 15216*b, col = "Population_K")) + 
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical")
+ggsave("introgressed_ancestry_twoaxis_75pct.png", plot = introgressed_ancestry_twoaxis, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+species_numbers = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.75]) + 
+  scale_y_continuous("Individuals") + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), Total_cervicornis, col = "A. cervicornis individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), Total_palmata, col = "A. palmata individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), Total_prolifera, col = "A. prolifera individuals"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ .) +
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical")
+ggsave("species_numbers_75pct.png", plot = species_numbers, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+ancestry_distribution = ggplot(ancestry_sample_data[Year %% 200 == 0 & other_species_compete_n == 0.75]) + 
+  geom_beeswarm(aes(X, Ancestry_Proportion, color = (as.factor(Species)))) +
+  facet_grid(initial_palmata ~ Year) +
+  theme_bw()
+ggsave("ancestry_sample_distribution_75pct.png", plot =  ancestry_distribution, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+age_distribution = ggplot(ancestry_sample_data[Year %% 200 == 0 & other_species_compete_n == 0.75]) + 
+  geom_beeswarm(aes(Species, Age, color = (Ancestry_Proportion))) +
+  facet_grid(initial_palmata ~ Year) +
+  theme_bw()
+ggsave("age_ancestry_sample_distribution_75pct.png", plot =  age_distribution, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+selected_data = sim_data[Year <= 1000 & other_species_compete_n == 0.5]
+
+max_cer = max(as.integer(selected_data$Total_cervicornis))
+max_pal = max(as.integer(selected_data$Total_palmata))
+max_pro = max(as.integer(selected_data$Total_prolifera))
+maximums = c(max_cer, max_pal, max_pro)
+max_total_inds = max(maximums)
+
+max_cer_in_pal = max((selected_data$cervicornis_ancestry_in_palmata))
+max_pal_in_cer = max((selected_data$palmata_ancestry_in_cervicornis))
+maximums2 = c(max_cer_in_pal, max_pal_in_cer)
+max_ancestry = max(maximums2)
+
+primary_y_lim = c(0, max_ancestry)
+secondary_y_lim = c(0, max_total_inds)
+
+b = diff(primary_y_lim)/diff(secondary_y_lim)
+a = primary_y_lim[1] - b*secondary_y_lim[1]
+
+beneficial_mutation_tracker = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.5]) + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), beneficial_in_cervicornis, col = "A. cervicornis"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), beneficial_in_palmata, col = "A. palmata"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), beneficial_in_prolifera, col = "A. prolifera"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ starting_number_n) +
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical") + ylab("Mean Beneficial Alleles per Individual")
+ggsave("beneficial_mutation_tracker_50pct.png", plot = beneficial_mutation_tracker, units = "in", width = 16.38, height = 10, device="png", dpi=300)
+
+introgressed_ancestry_twoaxis = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.5]) + 
+  scale_y_continuous("Introgressed Ancestry", sec.axis = sec_axis(~ (. - a)/b, name = "Individuals")) +
+  geom_area(aes(Year, palmata_ancestry_in_cervicornis, fill="A. palmata ancestry in A. cervicornis"), alpha = 0.4) +
+  geom_area(aes(Year, cervicornis_ancestry_in_palmata, fill="A. cervicornis ancestry in A. palmata"), alpha = 0.4) + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), y = a + Total_cervicornis*b, col = "A. cervicornis individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), y = a + Total_palmata*b, col = "A. palmata individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), y = a + Total_prolifera*b, col = "A. prolifera individuals"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ .) +
+  #geom_line(aes(as.numeric(Year), y = a + 15216*b, col = "Population_K")) + 
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical")
+ggsave("introgressed_ancestry_twoaxis_50pct.png", plot = introgressed_ancestry_twoaxis, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+species_numbers = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.5]) + 
+  scale_y_continuous("Individuals") + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), Total_cervicornis, col = "A. cervicornis individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), Total_palmata, col = "A. palmata individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), Total_prolifera, col = "A. prolifera individuals"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ .) +
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical")
+ggsave("species_numbers_50pct.png", plot = species_numbers, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+ancestry_distribution = ggplot(ancestry_sample_data[Year %% 200 == 0 & other_species_compete_n == 0.5]) + 
+  geom_beeswarm(aes(X, Ancestry_Proportion, color = (as.factor(Species)))) +
+  facet_grid(initial_palmata ~ Year) +
+  theme_bw()
+ggsave("ancestry_sample_distribution_50pct.png", plot =  ancestry_distribution, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+age_distribution = ggplot(ancestry_sample_data[Year %% 200 == 0 & other_species_compete_n == 0.5]) + 
+  geom_beeswarm(aes(Species, Age, color = (Ancestry_Proportion))) +
+  facet_grid(initial_palmata ~ Year) +
+  theme_bw()
+ggsave("age_ancestry_sample_distribution_50pct.png", plot =  age_distribution, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+selected_data = sim_data[Year <= 1000 & other_species_compete_n == 0.25]
+
+max_cer = max(as.integer(selected_data$Total_cervicornis))
+max_pal = max(as.integer(selected_data$Total_palmata))
+max_pro = max(as.integer(selected_data$Total_prolifera))
+maximums = c(max_cer, max_pal, max_pro)
+max_total_inds = max(maximums)
+
+max_cer_in_pal = max((selected_data$cervicornis_ancestry_in_palmata))
+max_pal_in_cer = max((selected_data$palmata_ancestry_in_cervicornis))
+maximums2 = c(max_cer_in_pal, max_pal_in_cer)
+max_ancestry = max(maximums2)
+
+primary_y_lim = c(0, max_ancestry)
+secondary_y_lim = c(0, max_total_inds)
+
+b = diff(primary_y_lim)/diff(secondary_y_lim)
+a = primary_y_lim[1] - b*secondary_y_lim[1]
+
+beneficial_mutation_tracker = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.25]) + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), beneficial_in_cervicornis, col = "A. cervicornis"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), beneficial_in_palmata, col = "A. palmata"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), beneficial_in_prolifera, col = "A. prolifera"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ starting_number_n) +
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical") + ylab("Mean Beneficial Alleles per Individual")
+ggsave("beneficial_mutation_tracker_25pct.png", plot = beneficial_mutation_tracker, units = "in", width = 16.38, height = 10, device="png", dpi=300)
+
+introgressed_ancestry_twoaxis = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.25]) + 
+  scale_y_continuous("Introgressed Ancestry", sec.axis = sec_axis(~ (. - a)/b, name = "Individuals")) +
+  geom_area(aes(Year, palmata_ancestry_in_cervicornis, fill="A. palmata ancestry in A. cervicornis"), alpha = 0.4) +
+  geom_area(aes(Year, cervicornis_ancestry_in_palmata, fill="A. cervicornis ancestry in A. palmata"), alpha = 0.4) + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), y = a + Total_cervicornis*b, col = "A. cervicornis individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), y = a + Total_palmata*b, col = "A. palmata individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), y = a + Total_prolifera*b, col = "A. prolifera individuals"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ .) +
+  #geom_line(aes(as.numeric(Year), y = a + 15216*b, col = "Population_K")) + 
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical")
+ggsave("introgressed_ancestry_twoaxis_25pct.png", plot = introgressed_ancestry_twoaxis, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+species_numbers = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.25]) + 
+  scale_y_continuous("Individuals") + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), Total_cervicornis, col = "A. cervicornis individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), Total_palmata, col = "A. palmata individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), Total_prolifera, col = "A. prolifera individuals"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ .) +
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical")
+ggsave("species_numbers_25pct.png", plot = species_numbers, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+ancestry_distribution = ggplot(ancestry_sample_data[Year %% 200 == 0 & other_species_compete_n == 0.25]) + 
+  geom_beeswarm(aes(X, Ancestry_Proportion, color = (as.factor(Species)))) +
+  facet_grid(initial_palmata ~ Year) +
+  theme_bw()
+ggsave("ancestry_sample_distribution_25pct.png", plot =  ancestry_distribution, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+age_distribution = ggplot(ancestry_sample_data[Year %% 200 == 0 & other_species_compete_n == 0.25]) + 
+  geom_beeswarm(aes(Species, Age, color = (Ancestry_Proportion))) +
+  facet_grid(initial_palmata ~ Year) +
+  theme_bw()
+ggsave("age_ancestry_sample_distribution_25pct.png", plot =  age_distribution, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+selected_data = sim_data[Year <= 1000 & other_species_compete_n == 0.0]
+
+max_cer = max(as.integer(selected_data$Total_cervicornis))
+max_pal = max(as.integer(selected_data$Total_palmata))
+max_pro = max(as.integer(selected_data$Total_prolifera))
+maximums = c(max_cer, max_pal, max_pro)
+max_total_inds = max(maximums)
+
+max_cer_in_pal = max((selected_data$cervicornis_ancestry_in_palmata))
+max_pal_in_cer = max((selected_data$palmata_ancestry_in_cervicornis))
+maximums2 = c(max_cer_in_pal, max_pal_in_cer)
+max_ancestry = max(maximums2)
+
+primary_y_lim = c(0, max_ancestry)
+secondary_y_lim = c(0, max_total_inds)
+
+b = diff(primary_y_lim)/diff(secondary_y_lim)
+a = primary_y_lim[1] - b*secondary_y_lim[1]
+
+beneficial_mutation_tracker = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.0]) + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), beneficial_in_cervicornis, col = "A. cervicornis"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), beneficial_in_palmata, col = "A. palmata"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), beneficial_in_prolifera, col = "A. prolifera"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ starting_number_n) +
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical") + ylab("Mean Beneficial Alleles per Individual")
+ggsave("beneficial_mutation_tracker_0pct.png", plot = beneficial_mutation_tracker, units = "in", width = 16.38, height = 10, device="png", dpi=300)
+
+introgressed_ancestry_twoaxis = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.0]) + 
+  scale_y_continuous("Introgressed Ancestry", sec.axis = sec_axis(~ (. - a)/b, name = "Individuals")) +
+  geom_area(aes(Year, palmata_ancestry_in_cervicornis, fill="A. palmata ancestry in A. cervicornis"), alpha = 0.4) +
+  geom_area(aes(Year, cervicornis_ancestry_in_palmata, fill="A. cervicornis ancestry in A. palmata"), alpha = 0.4) + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), y = a + Total_cervicornis*b, col = "A. cervicornis individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), y = a + Total_palmata*b, col = "A. palmata individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), y = a + Total_prolifera*b, col = "A. prolifera individuals"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ .) +
+  #geom_line(aes(as.numeric(Year), y = a + 15216*b, col = "Population_K")) + 
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical")
+ggsave("introgressed_ancestry_twoaxis_0pct.png", plot = introgressed_ancestry_twoaxis, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+species_numbers = ggplot(sim_data[Year <= 1000 & other_species_compete_n == 0.0]) + 
+  scale_y_continuous("Individuals") + 
+  scale_color_manual(values = c("#E41A1C", "#337CB7", "#A162D0")) +
+  geom_line(aes(as.numeric(Year), Total_cervicornis, col = "A. cervicornis individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), Total_palmata, col = "A. palmata individuals"), linewidth = 0.75) +
+  geom_line(aes(as.numeric(Year), Total_prolifera, col = "A. prolifera individuals"), linewidth = 0.75) +
+  facet_grid(initial_palmata ~ .) +
+  theme_bw() + labs(x = "Year") + theme(legend.position="bottom", legend.box = "vertical")
+ggsave("species_numbers_0pct.png", plot = species_numbers, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+ancestry_distribution = ggplot(ancestry_sample_data[Year %% 200 == 0 & other_species_compete_n == 0.0]) + 
+  geom_beeswarm(aes(X, Ancestry_Proportion, color = (as.factor(Species)))) +
+  facet_grid(initial_palmata ~ Year) +
+  theme_bw()
+ggsave("ancestry_sample_distribution_0pct.png", plot =  ancestry_distribution, units = "in", width = 18, height = 10, device="png", dpi=300)
+
+age_distribution = ggplot(ancestry_sample_data[Year %% 200 == 0 & other_species_compete_n == 0.0]) + 
+  geom_beeswarm(aes(Species, Age, color = (Ancestry_Proportion))) +
+  facet_grid(initial_palmata ~ Year) +
+  theme_bw()
+ggsave("age_ancestry_sample_distribution_0pct.png", plot =  age_distribution, units = "in", width = 18, height = 10, device="png", dpi=300)
 
 # ------------------------------------------------------------------------------------------------------------------------------------
 # Runs with different heat_resistant_mortality_modifier_n
