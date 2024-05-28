@@ -18,7 +18,7 @@ initialize()
 	// Carrying Capacities, Mortality and Pop Sizes:
 	// ***********************************
 	if (!exists("DS"))
-		defineConstant("DS", 5); // Down scale the simulation ( Must be >= 1)
+		defineConstant("DS", 1); // Down scale the simulation ( Must be >= 1)
 	if (!exists("SN"))
 		defineConstant("SN", integerDiv(100000, DS)); // Starting number of individuals
 	if (!exists("other_species_compete"))
