@@ -40,7 +40,7 @@ initialize()
 	if (!exists("bleaching_rate"))
 		defineGlobal("bleaching_rate", 0.167); // Starting 2016 bleaching rate	
 	if (!exists("initial_ratio"))
-		defineConstant("initial_ratio", 0.1); // percentage of inital population that is palmata (used in initilization step of sim)
+		defineConstant("initial_ratio", 0.5); // percentage of inital population that is palmata (used in initilization step of sim)
 	
 	// Movement and interaction and competition:
 	// ***********************************
@@ -61,22 +61,22 @@ initialize()
 	
 	// Mating rate params:
 	// ***********************************
-	if (!exists("reproduce_cer"))
-		defineConstant("reproduce_cer", 0.01); // reproduction for cervicornis X cervicornis cross
-	if (!exists("reproduce_pal"))
-		defineConstant("reproduce_pal", 0.01); // reproduction for palmata X palmata cross
-	if (!exists("reproduce_pro"))
-		defineConstant("reproduce_pro", 0.01); // reproduction for hybrid cross. So how many successful offspring are possible if the parentage is mixed.
+	if (!exists("success_cer"))
+		defineConstant("success_cer", 0.01); // success for cervicornis X cervicornis cross
+	if (!exists("success_pal"))
+		defineConstant("success_pal", 0.01); // success for palmata X palmata cross
+	if (!exists("success_pro"))
+		defineConstant("success_pro", 0.01); // success for hybrid cross. So how many successful offspring are possible if the parentage is mixed.
 	if (!exists("clone_rate"))
 		defineConstant("clone_rate", 0.02); // reproduction for clonal repro
 	if (!exists("MD"))
 		defineConstant("MD", 0.6); // Mating distance (ENTER IN KILOMETERS)
 	if (!exists("cer_csp"))
-		defineConstant("cer_csp", 0.03); // Conspecific sperm preference of cervicornis egg
+		defineConstant("cer_csp", 0.03); // Conspecific sperm preference of cervicornis egg, 0.03 from Fogarty et al., 2012
 	if (!exists("pal_csp"))
-		defineConstant("pal_csp", 0.333); // Conspecific sperm preference of palmata egg
+		defineConstant("pal_csp", 0.33); // Conspecific sperm preference of palmata egg, 0.333 from Fogarty et al., 2012
 	if (!exists("gamma"))
-		defineConstant("gamma", 0.1); // Down weighting of prolifera sperm success (1 = no down weighting)
+		defineConstant("gamma", 1.0); // Down weighting of prolifera sperm success (1 = no down weighting)
 	if (!exists("random_initial_settle"))
 		defineConstant("random_initial_settle", 1); // 0 = non-random initial settle, 1 = random initial settle
 	
@@ -304,7 +304,7 @@ initialize()
 			// -------------------------------
 			// Color Based on Percent Ancestry
 			// -------------------------------
-			ancestry = i.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2);
+			ancestry = i.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2 + 2);
 			i.color = rgb2color(hsv2rgb(c(0.6, 1.0, ancestry)));
 		}
 	}
@@ -316,10 +316,10 @@ initialize()
 	//  Before sim starts ---> Initialize output files
 	// -----------------------------------------------
 	// log runtime params
-	param_string = paste(DS, SN, parentalK, parentalK, proK, SDX, SDY, meanX, meanY, initial_ratio, reproduce_cer, reproduce_pal, reproduce_pro, clone_rate, cer_csp, pal_csp, gamma, other_species_compete, base_adult_mortality_rate, heat_resistant_mortality_modifier, bleaching_simulation, motality_rate_elevation);
+	param_string = paste(DS, SN, parentalK, parentalK, proK, SDX, SDY, meanX, meanY, initial_ratio, success_cer, success_pal, success_pro, clone_rate, cer_csp, pal_csp, gamma, other_species_compete, base_adult_mortality_rate, heat_resistant_mortality_modifier, bleaching_simulation, motality_rate_elevation);
 	
 	// Runtime params file headings - write to file
-	param_heading = paste("DS SN parentalK parentalK proK SDX SDY meanX meanY initial_ratio reproduce_cer reproduce_pal reproduce_pro clone_rate cer_csp pal_csp gamma other_species_compete base_adult_mortality_rate heat_resistant_mortality_modifier bleaching_simulation motality_rate_elevation");
+	param_heading = paste("DS SN parentalK parentalK proK SDX SDY meanX meanY initial_ratio success_cer success_pal success_pro clone_rate cer_csp pal_csp gamma other_species_compete base_adult_mortality_rate heat_resistant_mortality_modifier bleaching_simulation motality_rate_elevation");
 	
 	// Runtime params - write to file
 	output_runtime_file_name = ("/sim_runtime_params_" + output_name + ".tsv");
@@ -362,7 +362,7 @@ reproduction()
 		if ((num_pal_possible_mates + num_cer_possible_mates + num_pro_possible_mates) == 0)
 			no_mates = T;
 		else
-			no_mates = F;		
+			no_mates = F;
 		
 		if (no_mates == F) // Runs if there are possible mates near by
 		{
@@ -422,136 +422,119 @@ reproduction()
 		
 		if (isNULL(mate) != T)
 		{
-			// select proper reproduction rate:
-			// ------------------------------
-			if (individual.z == 0) // if individual is cervicornis
-			{
-				if (mate.z == 0) // if mate is cervicornis
-					reproduce = reproduce_cer; // reproduce at cervicornis rate
-				else if (mate.z == 1) // if mate is palmata
-					reproduce = reproduce_pro; // reproduce at prolifera rate
-				else if (mate.z == 2) // if mate is prolifera
-					reproduce = reproduce_cer; // reproduce at cervicornis rate
-			}
-			else if (individual.z == 1) // if individual is palmata
-			{
-				if (mate.z == 0) // if mate is cervicornis
-					reproduce = reproduce_pro; // reproduce at prolifera rate
-				else if (mate.z == 1) // if mate is palmata
-					reproduce = reproduce_pal; // reproduce at palmata rate
-				else if (mate.z == 2) // if mate is prolifera
-					reproduce = reproduce_pal; // reproduce at palmata rate
-			}
-			else if (individual.z == 2) // if individual is prolifera
-			{
-				if (mate.z == 0) // if mate is cervicornis
-					reproduce = reproduce_cer; // reproduce at cervicornis rate
-				else if (mate.z == 1) // if mate is palmata
-					reproduce = reproduce_pal; // reproduce at palmata rate
-				else if (mate.z == 2) // if mate is prolifera
-					reproduce = reproduce_pro; // reproduce at prolifera rate
-			}
+			// Determine an intital offspring postion based to initalize the individual before dispersal step below
+			pos = individual.spatialPosition;
 			
-			// Generate offspring that will reproduce based on above rate determination
-			for (i in seqLen(rbinom(1, 1, reproduce)))
+			// ---------------------------------------------------
+			//  MOVEMENT --> How larvae disperse
+			// ---------------------------------------------------
+			// Normal multivariate distribution dictating dispersal to pick new coordinates in the movement range
+			coordinate_matrix = rmvnorm(1, c(meanX, meanY), matrix(c(SDX^2, 0, 0, SDY^2), nrow=2));
+			coordinates = c(coordinate_matrix[0], coordinate_matrix[1]);
+			
+			// Determine the new positional coordinates
+			newPos = individual.spatialPosition + coordinates;
+			
+			if (p1.pointInBounds(newPos) & p1.spatialMapValue("map_object", newPos) != 0.0) // Only generates an offspring if density is below K and point is on a suitable reef
 			{
-				// Determine an intital offspring postion based to initalize the individual before dispersal step below
-				pos = individual.spatialPosition;
+				// Generates an offspring
+				offspring = subpop.addCrossed(individual, mate);
+				offspring.setSpatialPosition(newPos); // Set settle point for offspring
 				
-				// ---------------------------------------------------
-				//  MOVEMENT --> How larvae disperse
-				// ---------------------------------------------------
-				// Normal multivariate distribution dictating dispersal to pick new coordinates in the movement range
-				coordinate_matrix = rmvnorm(1, c(meanX, meanY), matrix(c(SDX^2, 0, 0, SDY^2), nrow=2));
-				coordinates = c(coordinate_matrix[0], coordinate_matrix[1]);
+				// Define z param in offspring (phenotype, 0 = cervicornis, 1 = palmata, 2 == prolifera)
+				offspring.z = 0;
 				
-				// Determine the new positional coordinates
-				newPos = individual.spatialPosition + coordinates;
-				if (p1.pointInBounds(newPos) & p1.spatialMapValue("map_object", newPos) != 0.0) // Only generates an offspring if density is below K and point is on a suitable reef
+				// Determine percent ancestry in offspring
+				ancestry = offspring.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2 + 2);
+				
+				// Determine the genotype at the speciation loci
+				species_loci = offspring.countOfMutationsOfType(m2);
+				
+				// Determine species of the offspring based on ancestry threshold
+				if (species_loci >= 162)
+					offspring.z = 1; // offspring is palmata
+				else if (species_loci <= 18)
+					offspring.z = 0; // offspring is cervicornis
+				else
+					offspring.z = 2; // offspring is prolifera
+				
+				if (offspring.z == 0) // offspring is cervicornis
+					mortality_prob = c(1 - success_cer, (success_cer)); // Probability of survival
+				else if (offspring.z == 1) // offspring is palmata 
+					mortality_prob = c(1 - success_pal, (success_pal)); // Probability of survival
+				else if (offspring.z == 2) // offspring is prolifera
+					mortality_prob = c(1 - success_pro, (success_pro)); // Probability of survival
+				
+				// Most indiviudals will not survive and settle
+				choices = c(0, 1); // Vector of choices, will the individual die (0) or survive (1)
+				mortality = sample(choices, 1, weights=mortality_prob); // Select from choices
+				
+				if (mortality == 0)
+					offspring.fitnessScaling = 0;
+				
+				
+				if (Color_scheme == 1) // Coloring in GUI of individuals
 				{
-					// Generates an offspring
-					offspring = subpop.addCrossed(individual, mate);
-					offspring.setSpatialPosition(newPos); // Set settle point for offspring
-					
-					// Define z param in offspring (phenotype, 0 = cervicornis, 1 = palmata, 2 == prolifera)
-					offspring.z = 0;
-					
-					// Determine percent ancestry in offspring
-					ancestry = offspring.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2);
-					
-					// Determine the genotype at the speciation loci
-					species_loci = offspring.countOfMutationsOfType(m2);
-					
-					// Determine species of the offspring based on ancestry threshold
-					if (species_loci >= 162)
-						offspring.z = 1; // offspring is palmata
-					else if (species_loci <= 18)
-						offspring.z = 0; // offspring is cervicornis
-					else
-						offspring.z = 2; // offspring is prolifera
-					
-					if (Color_scheme == 1) // Coloring in GUI of individuals
-					{
-						// --------------------------------
-						// Color Based on Discrete Species
-						// --------------------------------
-						// Add color to represent phenotype
-						if (offspring.z == 0) // cervicornis
-							offspring.color = "red"; //cervicornis = red
-						else if (offspring.z == 1) // palmata
-							offspring.color = "blue"; //palmata = blue
-						else if (offspring.z == 2) // prolifera
-							offspring.color = "green"; // prolifera = green
-					}
-					else
-					{
-						// -------------------------------
-						// Color Based on Percent Ancestry
-						// -------------------------------
-						// Calculate percent ancestry
-						ancestry = offspring.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2);
-						
-						// Color as a gradient based on the percent ancestry
-						offspring.color = rgb2color(hsv2rgb(c(0.6, 1.0, ancestry)));
-					}
-					
-					// Count all neighbors to the location where the offspring settled
-					neighbors = i2.nearestNeighborsOfPoint(newPos, p1, count=p1.individuals.length());
-					num_neighbors = neighbors.length();
-					
-					// Determine the species composition of the neighbors
-					palmata_neighbors = neighbors[neighbors.z == 1.0];
-					cervicornis_neighbors = neighbors[neighbors.z == 0.0];
-					prolifera_neighbors = neighbors[neighbors.z == 2.0];
-					
-					// If the local densitiy is >= to the K for the species that the offspring is, the settle will not be sucessful and the offspring larvae will die
-					if (offspring.z == 1.0)
-					{
-						num_pal_neighbors = palmata_neighbors.length(); // Number of other palmata individuals surrounding new palmata larvae
-						num_other_neighbors = (num_neighbors - num_pal_neighbors); // Number of other non-palmata individuals surrounding new palmata larvae
-						neighbors_counting_towards_K = (num_pal_neighbors + (num_other_neighbors * other_species_compete)); // Count based on the level of competition with other species, calculate the effective local density for new palmata larvea
-						if (neighbors_counting_towards_K >= (PI * S^2 * parentalK)) // If the effective local density is larger than expected K
-							offspring.fitnessScaling = 0.0; // Larvae will not settle effectively
-					}
-					
-					if (offspring.z == 0.0)
-					{
-						num_cer_neighbors = cervicornis_neighbors.length(); // Number of other cervicornis individuals surrounding new cervicornis larvae
-						num_other_neighbors = (num_neighbors - num_cer_neighbors); // Number of other non-cervicornis individuals surrounding new cervicornis larvae
-						neighbors_counting_towards_K = (num_cer_neighbors + (num_other_neighbors * other_species_compete)); // Count based on the level of competition with other species, calculate the effective local density for new cervicornis larvea
-						if (neighbors_counting_towards_K >= (PI * S^2 * parentalK)) // If the effective local density is larger than expected K
-							offspring.fitnessScaling = 0.0; // Larvae will not settle effectively
-					}
-					
-					if (offspring.z == 2.0)
-					{
-						num_pro_neighbors = prolifera_neighbors.length(); // Number of other prolifera individuals surrounding new prolifera larvae
-						num_other_neighbors = (num_neighbors - num_pro_neighbors); // Number of other non-prolifera individuals surrounding new prolifera larvae
-						neighbors_counting_towards_K = num_neighbors; // Prolifera has to fight for space against the parentals so it competes with all for an intermediate niche
-						if (neighbors_counting_towards_K >= (PI * S^2 * proK)) // If the effective local density is larger than expected K
-							offspring.fitnessScaling = 0.0; // Larvae will not settle effectively
-					}
+					// --------------------------------
+					// Color Based on Discrete Species
+					// --------------------------------
+					// Add color to represent phenotype
+					if (offspring.z == 0) // cervicornis
+						offspring.color = "red"; //cervicornis = red
+					else if (offspring.z == 1) // palmata
+						offspring.color = "blue"; //palmata = blue
+					else if (offspring.z == 2) // prolifera
+						offspring.color = "green"; // prolifera = green
 				}
+				else
+				{
+					// -------------------------------
+					// Color Based on Percent Ancestry
+					// -------------------------------
+					// Calculate percent ancestry
+					ancestry = offspring.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2 + 2);
+					
+					// Color as a gradient based on the percent ancestry
+					offspring.color = rgb2color(hsv2rgb(c(0.6, 1.0, ancestry)));
+				}
+				
+				// Count all neighbors to the location where the offspring settled
+				neighbors = i2.nearestNeighborsOfPoint(newPos, p1, count=p1.individuals.length());
+				num_neighbors = neighbors.length();
+				
+				// Determine the species composition of the neighbors
+				palmata_neighbors = neighbors[neighbors.z == 1.0];
+				cervicornis_neighbors = neighbors[neighbors.z == 0.0];
+				prolifera_neighbors = neighbors[neighbors.z == 2.0];
+				
+				// If the local densitiy is >= to the K for the species that the offspring is, the settle will not be sucessful and the offspring larvae will die
+				if (offspring.z == 1.0)
+				{
+					num_pal_neighbors = palmata_neighbors.length(); // Number of other palmata individuals surrounding new palmata larvae
+					num_other_neighbors = (num_neighbors - num_pal_neighbors); // Number of other non-palmata individuals surrounding new palmata larvae
+					neighbors_counting_towards_K = (num_pal_neighbors + (num_other_neighbors * other_species_compete)); // Count based on the level of competition with other species, calculate the effective local density for new palmata larvea
+					if (neighbors_counting_towards_K >= (PI * S^2 * parentalK)) // If the effective local density is larger than expected K
+						offspring.fitnessScaling = 0.0; // Larvae will not settle effectively
+				}
+				
+				if (offspring.z == 0.0)
+				{
+					num_cer_neighbors = cervicornis_neighbors.length(); // Number of other cervicornis individuals surrounding new cervicornis larvae
+					num_other_neighbors = (num_neighbors - num_cer_neighbors); // Number of other non-cervicornis individuals surrounding new cervicornis larvae
+					neighbors_counting_towards_K = (num_cer_neighbors + (num_other_neighbors * other_species_compete)); // Count based on the level of competition with other species, calculate the effective local density for new cervicornis larvea
+					if (neighbors_counting_towards_K >= (PI * S^2 * parentalK)) // If the effective local density is larger than expected K
+						offspring.fitnessScaling = 0.0; // Larvae will not settle effectively
+				}
+				
+				if (offspring.z == 2.0)
+				{
+					num_pro_neighbors = prolifera_neighbors.length(); // Number of other prolifera individuals surrounding new prolifera larvae
+					num_other_neighbors = (num_neighbors - num_pro_neighbors); // Number of other non-prolifera individuals surrounding new prolifera larvae
+					neighbors_counting_towards_K = num_neighbors; // Prolifera has to fight for space against the parentals so it competes with all for an intermediate niche
+					if (neighbors_counting_towards_K >= (PI * S^2 * proK)) // If the effective local density is larger than expected K
+						offspring.fitnessScaling = 0.0; // Larvae will not settle effectively
+				}
+			
 			}
 		}
 	}
@@ -562,7 +545,7 @@ reproduction()
 	// Generate offspring that will reproduce based on above rate determination
 	if (individual.age > 2)
 	{
-		for (i in seqLen(rbinom(1, 1, clone_rate)))
+		if (rbinom(1, 1, clone_rate) == 1)
 		{
 			// Normal multivariate distribution dictating dispersal to pick new coordinates in the movement range
 			coordinate_matrix = rmvnorm(1, c(meanX, meanY), matrix(c(clonal_SDX^2, 0, 0, clonal_SDY^2), nrow=2));
@@ -582,7 +565,7 @@ reproduction()
 				offspring.z = 0;
 				
 				// Determine percent ancestry in offspring
-				ancestry = offspring.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2);
+				ancestry = offspring.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2 + 2);
 				
 				// Determine the genotype at the speciation loci
 				species_loci = offspring.countOfMutationsOfType(m2);
@@ -615,7 +598,7 @@ reproduction()
 					// Color Based on Percent Ancestry
 					// -------------------------------
 					// Calculate percent ancestry
-					ancestry = offspring.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2);
+					ancestry = offspring.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2 + 2);
 					
 					// Color as a gradient based on the percent ancestry
 					offspring.color = rgb2color(hsv2rgb(c(0.6, 1.0, ancestry)));
@@ -728,51 +711,51 @@ early()
 		}
 		else
 		{
-
+			
 			// If evolutionary trade off is on
-
+			
 			if (evol_trade == 1)
 			{
-			// If not a heavy bleaching year, beneficial mutation does not confer selective advantage
-			motality_rate = base_adult_mortality_rate;
-			
-			// Loop through individuals in population and check for beneficial mutations, modify fitness accordingly
-			for (ind in inds)
-			{
-				if (ind.countOfMutationsOfType(m3) == 1) // If ind is heterozygous for beneficial mutation
-					
-					// Individual is partially resistant to bleaching due to heterozygous for beneficial mutation but will suffer partitally increased mortality otherwise
-					new_motality_rate = (motality_rate * ((1 + heat_resistant_mortality_modifier))); // having one copy increases mortality chance by <heat_resistant_mortality_modifier> (evolutionary tradeoff)
-				else if (ind.countOfMutationsOfType(m3) == 2) // If ind is homozygous for beneficial mutation
-					
-					// Individual is resistant to bleaching but will suffer increased mortality otherwise (evolutionary tradeoff)
-					new_motality_rate = (motality_rate * ((1 + heat_resistant_mortality_modifier)^2)); // having two copies increases by double <heat_resistant_mortality_modifier> (evolutionary tradeoff)
-				else
-					new_motality_rate = motality_rate;
-				mortality_prob = c(new_motality_rate, (1 - new_motality_rate)); // Probability of survival
-				choices = c(0, 1); // Vector of choices, will the individual die (0) or survive (1)
-				mortality = sample(choices, 1, weights=mortality_prob); // Select from choices
+				// If not a heavy bleaching year, beneficial mutation does not confer selective advantage
+				motality_rate = base_adult_mortality_rate;
 				
-				// If individual dies in bleaching event, set fitness to zero
-				if (mortality == 0)
-					ind.fitnessScaling = 0;
-			}
+				// Loop through individuals in population and check for beneficial mutations, modify fitness accordingly
+				for (ind in inds)
+				{
+					if (ind.countOfMutationsOfType(m3) == 1) // If ind is heterozygous for beneficial mutation
+						
+						// Individual is partially resistant to bleaching due to heterozygous for beneficial mutation but will suffer partitally increased mortality otherwise
+						new_motality_rate = (motality_rate * ((1 + heat_resistant_mortality_modifier))); // having one copy increases mortality chance by <heat_resistant_mortality_modifier> (evolutionary tradeoff)
+					else if (ind.countOfMutationsOfType(m3) == 2) // If ind is homozygous for beneficial mutation
+						
+						// Individual is resistant to bleaching but will suffer increased mortality otherwise (evolutionary tradeoff)
+						new_motality_rate = (motality_rate * ((1 + heat_resistant_mortality_modifier)^2)); // having two copies increases by double <heat_resistant_mortality_modifier> (evolutionary tradeoff)
+					else
+						new_motality_rate = motality_rate;
+					mortality_prob = c(new_motality_rate, (1 - new_motality_rate)); // Probability of survival
+					choices = c(0, 1); // Vector of choices, will the individual die (0) or survive (1)
+					mortality = sample(choices, 1, weights=mortality_prob); // Select from choices
+					
+					// If individual dies in bleaching event, set fitness to zero
+					if (mortality == 0)
+						ind.fitnessScaling = 0;
+				}
 			}
 			else
 			{
-// Loop through individuals in population and scale mortality
-		for (ind in inds)
-		{
-			new_motality_rate = base_adult_mortality_rate;
-			mortality_prob = c(new_motality_rate, (1 - new_motality_rate)); // Probability of survival
-			choices = c(0, 1); // Vector of choices, will the individual die (0) or survive (1)
-			mortality = sample(choices, 1, weights=mortality_prob); // Select from choices
+				// Loop through individuals in population and scale mortality
+				for (ind in inds)
+				{
+					new_motality_rate = base_adult_mortality_rate;
+					mortality_prob = c(new_motality_rate, (1 - new_motality_rate)); // Probability of survival
+					choices = c(0, 1); // Vector of choices, will the individual die (0) or survive (1)
+					mortality = sample(choices, 1, weights=mortality_prob); // Select from choices
+					
+					// If individual dies in bleaching event, set fitness to zero
+					if (mortality == 0)
+						ind.fitnessScaling = 0;
+				}
 			
-			// If individual dies in bleaching event, set fitness to zero
-			if (mortality == 0)
-				ind.fitnessScaling = 0;
-		}
-
 			}
 		}
 	}
@@ -820,7 +803,7 @@ late()
 				species = "prolifera";
 			
 			// Write output
-			output_ancestry_sample_string = paste(sim.cycle, ind, species, (ind.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2)), ind.x, ind.y, ind.age, sep=",");
+			output_ancestry_sample_string = paste(sim.cycle, ind, species, (ind.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2 + 2)), ind.x, ind.y, ind.age, sep=",");
 			output_ancestry_sample_file_name = ("/sim_ancestry_sample_" + output_name + ".csv");
 			writeFile(wd + output_ancestry_sample_file_name, output_ancestry_sample_string, append=T);
 		
@@ -857,27 +840,27 @@ late()
 	// calculate population size statistics
 	pop_size = p1.individuals.length();
 	
-	// calculate the cervicornis ancestry in all palmataa
+	// calculate the cervicornis ancestry in all palmata
 	if (length(palmata) != 0)
-		cervicornis_ancestry_palmata = (1 - (mean(palmata.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2))));
+		cervicornis_ancestry_palmata = (1 - (mean(palmata.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2 + 2))));
 	else
 		cervicornis_ancestry_palmata = 0.0;
 	
 	// calculate the palmata ancestry in all cervicornis
 	if (length(cervicornis) != 0)
-		palmata_ancestry_cervicornis = mean(cervicornis.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2));
+		palmata_ancestry_cervicornis = mean(cervicornis.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2 + 2));
 	else
 		palmata_ancestry_cervicornis = 0.0;
 	
 	// calculate the palmata ancestry in all prolifera
 	if (length(prolifera) != 0)
-		palmata_ancestry_prolifera = mean(prolifera.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2));
+		palmata_ancestry_prolifera = mean(prolifera.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2 + 2));
 	else
 		palmata_ancestry_prolifera = 0.0;
 	
 	// calculate the cervicornis ancestry in all prolifera
 	if (length(prolifera) != 0)
-		cervicornis_ancestry_prolifera = (1 - (mean(prolifera.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2))));
+		cervicornis_ancestry_prolifera = (1 - (mean(prolifera.countOfMutationsOfType(m1) / (sim.chromosome.lastPosition * 2 + 2))));
 	else
 		cervicornis_ancestry_prolifera = 0.0;
 	
