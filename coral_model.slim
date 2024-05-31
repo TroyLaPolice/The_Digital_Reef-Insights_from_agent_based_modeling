@@ -18,7 +18,7 @@ initialize()
 	// Carrying Capacities, Mortality and Pop Sizes:
 	// ***********************************
 	if (!exists("DS"))
-		defineConstant("DS", 1); // Down scale the simulation ( Must be >= 1)
+		defineConstant("DS", 5); // Down scale the simulation ( Must be >= 1)
 	if (!exists("SN"))
 		defineConstant("SN", integerDiv(100000, DS)); // Starting number of individuals
 	if (!exists("other_species_compete"))
@@ -74,7 +74,7 @@ initialize()
 	if (!exists("cer_csp"))
 		defineConstant("cer_csp", 0.03); // Conspecific sperm preference of cervicornis egg, 0.03 from Fogarty et al., 2012
 	if (!exists("pal_csp"))
-		defineConstant("pal_csp", 0.33); // Conspecific sperm preference of palmata egg, 0.333 from Fogarty et al., 2012
+		defineConstant("pal_csp", 0.333); // Conspecific sperm preference of palmata egg, 0.333 from Fogarty et al., 2012
 	if (!exists("gamma"))
 		defineConstant("gamma", 1.0); // Down weighting of prolifera sperm success (1 = no down weighting)
 	if (!exists("random_initial_settle"))
@@ -359,10 +359,20 @@ reproduction()
 		pro_possible_mates = possible_mates[possible_mates.z == 2]; // prolifera neighbors of reproductive age
 		num_pro_possible_mates = pro_possible_mates.length();  // number of prolifera neighbors of reproductive age
 		
-		if ((num_pal_possible_mates + num_cer_possible_mates + num_pro_possible_mates) == 0)
+		if (((num_pal_possible_mates + num_cer_possible_mates + num_pro_possible_mates) == 0) | (pal_csp == 1 & individual.z == 1 & num_pal_possible_mates == 0) | (cer_csp == 1 & individual.z == 0 & num_cer_possible_mates == 0))
 			no_mates = T;
 		else
 			no_mates = F;
+			
+		if (individual.z == 2) // if individual is prolifera bias their eggs too by gamma like the sperm
+		{
+			gamma_weight = c((1-gamma), gamma);
+			prolifera_gamma_mate = c(0, 1); // Vector of choices (0 = no offspring, 1 = offspring)
+			will_pro_mate = sample(prolifera_gamma_mate, 1, weights=gamma_weight); // Select from choices
+			
+			if (will_pro_mate == 0)
+				no_mates = T;
+		}
 		
 		if (no_mates == F) // Runs if there are possible mates near by
 		{
