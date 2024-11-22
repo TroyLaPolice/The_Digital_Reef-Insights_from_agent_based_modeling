@@ -30,7 +30,7 @@ initialize()
 	if (!exists("base_adult_mortality_rate"))
 		defineConstant("base_adult_mortality_rate", 0.01); // mortality rate in non-bleaching summers
 	if (!exists("bleaching_simulation"))
-		defineGlobal("bleaching_simulation", 0); // Decide if the simulation will have dynamic bleaching or not. 1 = yes 0 = no. The following parameters will not matter if 0 is slected: heat_resistant_mortality_modifier, motality_rate_elevation, evol_trade bleaching_rate
+		defineGlobal("bleaching_simulation", 1); // Decide if the simulation will have dynamic bleaching or not. 1 = yes 0 = no. The following parameters will not matter if 0 is slected: heat_resistant_mortality_modifier, motality_rate_elevation, evol_trade bleaching_rate
 	if (!exists("heat_resistant_mortality_modifier"))
 		defineConstant("heat_resistant_mortality_modifier", 0.5); // Beneficial mutation heat resistance mutation reduces the <mortality_rate> by <heat_resistant_mortality_modifier>
 	if (!exists("motality_rate_elevation"))
@@ -76,7 +76,7 @@ initialize()
 	if (!exists("pal_csp"))
 		defineConstant("pal_csp", 0.333); // Conspecific sperm preference of palmata egg, 0.333 from Fogarty et al., 2012
 	if (!exists("gamma"))
-		defineConstant("gamma", 1.0); // Down weighting of prolifera sperm success (1 = no down weighting)
+		defineConstant("gamma", 1.00); // Down weighting of prolifera sperm success (1 = no down weighting)
 	if (!exists("random_initial_settle"))
 		defineConstant("random_initial_settle", 1); // 0 = non-random initial settle, 1 = random initial settle
 	
@@ -280,8 +280,8 @@ initialize()
 	indpalmata.genomes.addNewMutation(m2, 0.0, 267:267);
 	
 	// Add random beneficial loci
-	//indpalmata.genomes.addNewMutation(m3, 0.0, 130);
-	indcervicornis.genomes.addNewMutation(m3, 0.0, 130);
+	indpalmata.genomes.addNewMutation(m3, 0.0, 130);
+	//indcervicornis.genomes.addNewMutation(m3, 0.0, 130);
 	
 	// Add color to represent phenotype
 	for (i in p1.individuals)
