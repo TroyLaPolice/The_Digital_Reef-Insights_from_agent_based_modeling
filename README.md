@@ -105,9 +105,8 @@ newPos = individual.spatialPosition + coordinates
 
 1. Offspring inherit a mix of parental alleles.
 2. Species of offspring determined based on `species_loci`:
-   
-   - >= 162: palmata
-   - <= 18: cervicornis
+   - species_loci >= 162: palmata
+   - species_loci <= 18: cervicornis
    - otherwise: prolifera (hybrid)
 
 4. Survival probability is species-specific and may be scaled for F2 hybrids.
