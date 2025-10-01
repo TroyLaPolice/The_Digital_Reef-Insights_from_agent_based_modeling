@@ -16,9 +16,6 @@ This repository contains a forward-time, individual-based simulation of coral hy
    - [Clonal Reproduction](#clonal-reproduction)
 7. [Mortality and Bleaching](#mortality-and-bleaching)
 8. [Population Sampling and Output](#population-sampling-and-output)
-9. [Visualization and Color Schemes](#visualization-and-color-schemes)
-10. [Example Code Snippets](#example-code-snippets)
-11. [Flowcharts](#flowcharts)
 
 ---
 
