@@ -86,7 +86,7 @@ The simulation is structured in three phases:
 
 Larvae move according to a multivariate normal distribution around the parent’s location.
 
-```
+```r
 coordinate_matrix = rmvnorm(1, c(meanX, meanY), matrix(c(SDX^2, 0, 0, SDY^2), nrow=2))
 coordinates = c(coordinate_matrix[0], coordinate_matrix[1])
 newPos = individual.spatialPosition + coordinates
@@ -111,7 +111,7 @@ newPos = individual.spatialPosition + coordinates
 
 4. Survival probability is species-specific and may be scaled for F2 hybrids.
 
-```
+```r
 if (species_loci >= 162)
     offspring.z = 1
 else if (species_loci <= 18)
