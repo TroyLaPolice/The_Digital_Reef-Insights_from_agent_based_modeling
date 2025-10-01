@@ -1,4 +1,3 @@
-```markdown
 # Coral Hybridization and Bleaching Simulation
 
 This repository contains a forward-time, individual-based simulation of coral hybridization and mortality, including the effects of climate-change-driven bleaching events. It is designed to model the population dynamics of three species: **Acropora cervicornis**, **Acropora palmata**, and their hybrid **Acropora prolifera**. The simulation also tracks the introgression of beneficial alleles conferring heat resistance.
