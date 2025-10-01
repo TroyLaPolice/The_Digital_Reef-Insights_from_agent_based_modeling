@@ -1,6 +1,6 @@
 # The Digital Reef: Informing coral restoration through insights from agent-based modeling
 
-This repository contains a forward-time, individual-based simulation of coral hybridization and mortality. It is designed to model the population dynamics of three species: **Acropora cervicornis**, **Acropora palmata**, and their hybrid **Acropora prolifera**. The simulation also tracks the introgression of beneficial alleles conferring heat resistance.
+This repository contains a forward-time, individual-based simulation of coral hybridization and mortality. It is designed to model the population dynamics of three species: *Acropora cervicornis*, *Acropora palmata*, and their hybrid *Acropora prolifera*. The simulation also tracks the introgression of beneficial alleles conferring heat resistance.
 
 ---
 
