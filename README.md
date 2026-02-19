@@ -73,7 +73,7 @@ It is implemented as an **SLiM forward-time individual-based simulation**, with 
 | **Reproduction**          | `success_pro`                       | 0.01      | Fertilization success for mixed or hybrid crosses.                                               | probability                  |
 | **Reproduction**          | `F2_success_scale`                  | 1         | Scaling factor modifying F2 hybrid success.                                                      | multiplier                   |
 | **Reproduction**          | `initial_ratio`                     | 0.5       | Initial fraction of the population that is palmata.                                              | proportion                   |
-| **Run / Scaling**         | `DS`                                | 5         | Downscaling factor controlling population size and carrying capacity.                            | unitless                     |
+| **Run / Scaling**         | `DS`                                | 1         | Downscaling factor controlling population size and carrying capacity.                            | unitless                     |
 | **Run / Scaling**         | `SN`                                | derived   | Initial population size (`SN / DS`).                                                         | individuals                  |
 | **Run / Scaling**         | `output_name`                       | "run1"    | Prefix used for output files.                                                                    | string                       |
 | **Run / Scaling**         | `wd`                                | user path | Working directory for maps and outputs.                                                          | path                         |
@@ -81,7 +81,7 @@ It is implemented as an **SLiM forward-time individual-based simulation**, with 
 | **Spatial Maps**          | `map_size_length`                   | 12.964    | Landscape length.                                                                                | km                           |
 | **Spatial Maps**          | `map_size_width`                    | 8.96      | Landscape width.                                                                                 | km                           |
 | **Spatial Maps**          | `random_initial_settle`             | 1         | Whether initial individuals are randomly placed.                                                 | boolean                      |
-| **Visualization**         | `Color_scheme`                      | 1         | Coloring mode (0 = genomic, 1 = phenotypic).                                                     | categorical                  |
+| **Visualization**         | `Color_scheme`                      | 1         | Coloring mode for GUI (0 = genomic, 1 = phenotypic).                                                     | categorical                  |
 | **Files**                 | `custom_map_filename`               | 0         | Filename for user-supplied habitat map.                                                          | string                       |
 | **Files**                 | `file_extention`                    | ".png"    | File extension for map images.                                                                   | string                       |
 
