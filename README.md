@@ -30,27 +30,6 @@ This simulation models:
 
 It is implemented as an **SLiM-like forward-time individual-based simulation**, with the ability to output statistics per year and every 20 years for ancestry sampling.
 
----
-
-## Key Biological Concepts
-
-1. **Species and Hybridization**
-   - `cervicornis` (A. cervicornis) and `palmata` (A. palmata) are parental species.
-   - `prolifera` (A. prolifera) is a hybrid species resulting from crosses between the parentals.
-   - Hybrid and backcross classes are tracked using `species_loci`.
-
-2. **Larval Dispersal**
-   - Larvae disperse based on a 2D multivariate normal distribution.
-   - Settlement depends on local density (competition) and habitat suitability.
-
-3. **Bleaching and Mortality**
-   - Climate-driven bleaching increases over time.
-   - Mortality is genotype-dependent, reflecting heat-resistance alleles.
-   - Different genetic models: additive, dominant, recessive.
-
-4. **Clonal Reproduction**
-   - Fragments reproduce clonally, simulating stochastic fragmentation.
-   - Age reduction reflects resource allocation to fragments.
 
 ---
 
@@ -158,7 +137,7 @@ else
     offspring.z = 2
 ```
 
-**Biological interpretation:** Thresholds allow classification of hybrids and backcrosses, reflecting partial introgression.
+**Biological interpretation:** Thresholds allow classification of hybrids and backcrosses.
 
 ### Clonal Reproduction
 
