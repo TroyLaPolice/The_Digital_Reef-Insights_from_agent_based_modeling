@@ -388,10 +388,17 @@ reproduction()
 		num_pal_possible_mates = pal_possible_mates.length(); // number of palmata neighbors of reproductive age
 		pro_possible_mates = possible_mates[possible_mates.z == 2]; // prolifera neighbors of reproductive age
 		num_pro_possible_mates = pro_possible_mates.length(); // number of prolifera neighbors of reproductive age
+	
+		// Determine whether mating is possible under:
+		//  (a) absolute absence of mature mates, or
+		//  (b) conspecific-preference mode for palmata/cervicornis where only conspecific mates are allowed/available.
+		// no_mates = T prevents proceeding to mate-choice and reproduction.
+
 		if (((num_pal_possible_mates + num_cer_possible_mates + num_pro_possible_mates) == 0) | (pal_csp == 1 & individual.z == 1 & num_pal_possible_mates == 0) | (cer_csp == 1 & individual.z == 0 & num_cer_possible_mates == 0))
 			no_mates = T;
 		else
 			no_mates = F;
+
 		if (individual.z == 2) // if individual is prolifera bias their eggs too by gamma like the sperm
 		{
 			gamma_weight = c((1 - gamma), gamma);
@@ -400,8 +407,15 @@ reproduction()
 			if (will_pro_mate == 0)
 				no_mates = T;
 		}
+
+		// Proceed only if at least one eligible mate exists and species-specific constraints allow mating.
 		if (no_mates == F) // Runs if there are possible mates near by
 		{
+			// Compute mate-species sampling weights based on:
+			//  - local abundance of each phenotype among mature neighbors,
+			//  - conspecific precidence (cer_csp / pal_csp),
+			//  - gamma scaling for prolifera mating contribution (hybrid fertility / compatibility weighting).
+
 			if (individual.z == 0) // if individual is cervicornis
 			{
 				cer_weight = (num_cer_possible_mates) / (num_cer_possible_mates + ((num_pal_possible_mates + gamma * num_pro_possible_mates) * (1 - cer_csp)));
