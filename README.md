@@ -66,12 +66,6 @@ The simulation is structured in three phases:
 
 ## Variables and Parameters
 
-Below is a **GitHub-ready Markdown table** you can paste directly into your README.
-
----
-
-## Variables and Parameters
-
 | Category                  | Variable                            | Default   | Description                                                                                      | Units / Notes                |
 | ------------------------- | ----------------------------------- | --------- | ------------------------------------------------------------------------------------------------ | ---------------------------- |
 | **Bleaching**             | `bleaching_rate`                    | 0.167     | Starting annual probability of bleaching; increases over time during the simulation.             | probability (0–1)            |
