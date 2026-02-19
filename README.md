@@ -7,8 +7,8 @@ This repository contains a forward-time, individual-based simulation of coral hy
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Simulation Structure](#simulation-structure)
-3. [Variables and Parameters](#variables-and-parameters)
+2. [Variables and Parameters](#variables-and-parameters)
+3. [Simulation Structure](#simulation-structure)
 4. [Movement and Dispersal](#movement-and-dispersal)
 5. [Reproduction](#reproduction)
    - [Sexual Reproduction](#sexual-reproduction)
