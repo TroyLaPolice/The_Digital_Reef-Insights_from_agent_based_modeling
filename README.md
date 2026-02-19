@@ -27,18 +27,8 @@ This simulation models:
 - Mortality influenced by genotype and bleaching events
 - Tracking of ancestry and beneficial alleles over time
 
-It is implemented as an **SLiM-like forward-time individual-based simulation**, with the ability to output statistics per year and every 20 years for ancestry sampling.
+It is implemented as an **SLiM forward-time individual-based simulation**, with the ability to output statistics per year and every 20 years for ancestry sampling.
 
-
----
-
-## Simulation Structure
-
-The simulation is structured in three phases:
-
-1. **Early()** – Mortality events and bleaching logic.
-2. **Late()** – Outputs, ancestry sampling, and year-end population stats.
-3. **Reproduction** – Larval dispersal, sexual and clonal reproduction, hybrid determination.
 
 ---
 
@@ -98,111 +88,189 @@ The simulation is structured in three phases:
 
 ---
 
+## Simulation Structure
+
+The simulation follows a **nonWF, forward-time life cycle** implemented in SLiM. Each yearly time step proceeds in the following order:
+
+1. **Early() — Mortality and bleaching**
+
+   * Applies baseline adult mortality.
+   * If bleaching is enabled, mortality is elevated and may be reduced by beneficial alleles (`m3`) depending on the specified genetic model (`mut_type`).
+   * Individuals that do not survive have `fitnessScaling = 0`.
+
+2. **Reproduction — Sexual and clonal production of offspring**
+
+   * Mature individuals may reproduce sexually with nearby mates within distance `MD`.
+   * Fertilization success depends on species pairing and conspecific sperm preference.
+   * Offspring species identity is determined from speciation loci (`m2`).
+   * Individuals age ≥ 2 may also reproduce clonally with probability `clone_rate`.
+
+3. **Late() — Density dependence and outputs**
+
+   * Density-dependent settlement is applied using local competition within radius `S`.
+   * Population statistics are written annually.
+   * Every 20 years, individuals are sampled for ancestry and spatial output.
+
+---
+
 ## Movement and Dispersal
 
-Larvae move according to a multivariate normal distribution around the parent’s location.
+Larval dispersal is modeled as a **bivariate normal displacement** around the parent colony:
 
 ```r
-coordinate_matrix = rmvnorm(1, c(meanX, meanY), matrix(c(SDX^2, 0, 0, SDY^2), nrow=2))
-coordinates = c(coordinate_matrix[0], coordinate_matrix[1])
+coordinate_matrix = rmvnorm(1, c(meanX, meanY),
+                            matrix(c(SDX^2, 0, 0, SDY^2), nrow=2))
 newPos = individual.spatialPosition + coordinates
 ```
 
-- `p1.pointInBounds(newPos)` ensures larvae remain in the simulation grid.
-- Settlement success is also influenced by local density and habitat suitability.
+### Key mechanics
 
-**Biological reasoning:** This simulates realistic coral larval dispersal with limited range and density-dependent settlement.
+* Dispersal is **isotropic but parameterized separately** in X and Y if isotripic distirubtion is not desired.
+* The mean displacement is typically zero (`meanX = meanY = 0`).
+* Settlement is only allowed if the location is inside the habitat:
+
+```r
+p1.pointInBounds(newPos)
+```
+
+### Density-dependent settlement
+
+After dispersal, successful establishment depends on:
+
+* Local crowding within radius `S`
+* Species-specific carrying capacities (`parentalK`, `proK`)
+* Cross-species competition scaled by `other_species_compete`
+
+**Interpretation:** Larvae disperse broadly but recruitment is locally limited by crowding and niche overlap.
 
 ---
 
 ## Reproduction
 
-### Sexual Reproduction
+### Sexual reproduction
 
-1. Offspring inherit a mix of parental alleles.
-2. Species of offspring determined based on `species_loci`:
-   - species_loci >= 162: palmata
-   - species_loci <= 18: cervicornis
-   - otherwise: prolifera (hybrid)
+Sexual reproduction occurs between nearby colonies within mating distance `MD`.
 
-4. Survival probability is species-specific and may be scaled for F2 hybrids.
+#### Fertilization success
 
-```r
-if (species_loci >= 162)
-    offspring.z = 1
-else if (species_loci <= 18)
-    offspring.z = 0
-else
-    offspring.z = 2
-```
+Cross success depends on species identity:
 
-**Biological interpretation:** Thresholds allow classification of hybrids and backcrosses.
+* `success_cer` — cervicornis × cervicornis
+* `success_pal` — palmata × palmata
+* `success_pro` — mixed or hybrid crosses
 
-### Clonal Reproduction
+Eggs also exhibit **conspecific sperm precidence**:
 
-- Occurs stochastically after age 2.
-- Offspring is a partial clone with age set to 2.
-- Dispersal follows a smaller SD (`clonal_SDX`, `clonal_SDY`).
+* `cer_csp`
+* `pal_csp`
 
-```r
-if (rbinom(1, 1, clone_rate) == 1) {
-    offspring = subpop.addCloned(individual)
-    offspring.age = 2
-}
-```
+The parameter `gamma` optionally down-weights prolifera sperm success.
 
-**Biological interpretation:** Models fragmentation, a common asexual reproduction method in corals.
+---
+
+### Species determination via speciation loci
+
+Offspring species identity is determined by counting `m2` mutations:
+
+**Interpretation**
+
+* Low counts → cervicornis ancestry
+* High counts → palmata ancestry
+* Intermediate counts → hybrids/backcrosses
+
+This creates a **continuous introgression spectrum** rather than discrete hybrid classes.
+
+---
+
+### Clonal reproduction
+
+Individuals age ≥ 2 may fragment clonally:
+
+Clonal offspring:
+
+* inherit the full genome
+* are placed using a **shorter-distance dispersal kernel**
+
+**Biological meaning:** Represents storm fragmentation and local reattachment.
 
 ---
 
 ## Mortality and Bleaching
 
-### Dynamic Bleaching Simulation
+### Baseline mortality
 
-- Bleaching probability increases by 4% each year.
-- If bleaching occurs, mortality is scaled by genotype:
+Each year, adults experience:
 
-```r
-if (mut_type == 0) { # additive
-    new_mortality_rate = mortality_rate * (1 - heat_resistant_mortality_modifier)^ind.countOfMutationsOfType(m3)
-} else if (mut_type == 1) { # dominant
-    new_mortality_rate = ifelse(ind.countOfMutationsOfType(m3) >= 1, mortality_rate*(1 - heat_resistant_mortality_modifier), mortality_rate)
-} else { # recessive
-    new_mortality_rate = ifelse(ind.countOfMutationsOfType(m3) == 2, mortality_rate*(1 - heat_resistant_mortality_modifier), mortality_rate)
-}
+```
+base_adult_mortality_rate
 ```
 
-- Survival is sampled probabilistically.
-- Non-survivors have `fitnessScaling = 0`.
+If bleaching is disabled, this is the only mortality source.
 
-**Biological interpretation:** Heat-resistance alleles reduce mortality in a manner consistent with dominance or additivity.
+---
 
-### Simple Mortality
+### Bleaching dynamics
 
-If bleaching is disabled, each individual experiences base adult mortality.
+When `bleaching_simulation = 1`:
+
+* Annual bleaching probability starts at `bleaching_rate`
+* Bleaching probability increases
+* During bleaching years:
+
+  * mortality is multiplied by `mortality_rate_elevation`
+  * beneficial alleles (`m3`) may reduce mortality
+
+---
+
+### Genetic models of resistance
+
+The effect of beneficial alleles depends on `mut_type`.
+
+#### Additive (0)
+
+Each copy reduces mortality multiplicatively:
+
+#### Dominant (1)
+
+Any copy confers protection.
+
+#### Recessive (2)
+
+Two copies required for protection.
+
+---
+
+**Important interpretation:**
+The model allows beneficial alleles to introgress through hybridization and alter survival under climate stress.
 
 ---
 
 ## Population Sampling and Output
 
-### Every 20 years
+### Annual output
 
-- Sample up to 1000 individuals for ancestry tracking.
-- Outputs include species, proportion of parental alleles, spatial position, and age.
+Each year the model records:
 
-### Every year
+* total population size
+* species counts
+* hybrid ratios
+* ancestry introgression metrics
+* counts of beneficial alleles by species
+* current bleaching probability
 
-- Counts pure parental, backcross, F1, F2, and hybrid individuals.
-- Outputs population statistics including species ratios and introgressed beneficial alleles.
+This enables tracking of **eco-evolutionary dynamics through time**.
 
-```r
-output_string = paste(sim.cycle, pop_size, num_palmata, num_cervicornis, num_prolifera, ratio,
-                        cervicornis_ancestry_palmata, palmata_ancestry_cervicornis,
-                        palmata_ancestry_prolifera, cervicornis_ancestry_prolifera,
-                        beneficial_in_pro, beneficial_in_pal, beneficial_in_cer, bleaching_rate, sep=",")
-writeFile(wd + output_stats_file_name, output_string, append=T)
-```
+---
 
-**Biological interpretation:** Enables tracking of hybridization dynamics, introgression, and population composition over time.
+### 20-year ancestry sampling
+
+Every 20 years, up to 1000 individuals are sampled and written to file with:
+
+* species identity (`z`)
+* spatial coordinates
+* age
+* parental ancestry proportions
+
+**Purpose:** Enables spatial and genomic analysis of introgression patterns.
 
 ---
