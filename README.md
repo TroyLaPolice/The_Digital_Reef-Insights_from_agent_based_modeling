@@ -120,11 +120,6 @@ The simulation is structured in three phases:
 
 ---
 
-If helpful, the next high-impact improvement would be an **Outputs table** so users know exactly what each column in your CSV means.
-
-
----
-
 ## Movement and Dispersal
 
 Larvae move according to a multivariate normal distribution around the parent’s location.
