@@ -6,12 +6,6 @@ This repository contains a forward-time, individual-based simulation of coral hy
 
 ## Table of Contents
 
-Use this updated Table of Contents to match your current README structure and improvements:
-
----
-
-## Table of Contents
-
 1. [Overview](#overview)
 2. [Variables and Parameters](#variables-and-parameters)
 3. [Simulation Structure](#simulation-structure)
@@ -29,30 +23,6 @@ Use this updated Table of Contents to match your current README structure and im
 
    * [Annual Output](#annual-output)
    * [20-year Ancestry Sampling](#20-year-ancestry-sampling)
-
----
-
-### Two small fixes you should make in the body
-
-These will improve accuracy and professionalism:
-
-1. In Variables table:
-   Replace
-   SN — Initial population size (`SN / DS`)
-   with
-   SN — Initial population size (`100000 / DS`)
-
-2. Fix typos:
-
-   * “isotripic distirubtion” → **isotropic distribution**
-   * “precidence” → **preference**
-   * In bleaching section, restore the explicit wording:
-
-     > Bleaching probability increases by **+0.04 per year (absolute)**
-
----
-
-If you want, the next high-impact polish would be a **one-sentence model summary at the very top** that makes reviewers instantly understand the paper context.
 
 ---
 
