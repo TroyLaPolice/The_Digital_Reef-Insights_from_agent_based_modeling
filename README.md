@@ -66,19 +66,68 @@ The simulation is structured in three phases:
 
 ## Variables and Parameters
 
-| Variable | Description | Biological Interpretation |
-|----------|-------------|--------------------------|
-| `individual.z` | Phenotype: 0 = cervicornis, 1 = palmata, 2 = prolifera | Allows classification of species for hybridization and mortality |
-| `m1` | Mutations tracking parental ancestry | Used to compute proportion of parental alleles in hybrids |
-| `m2` | Speciation loci | Determines species of offspring based on thresholds |
-| `m3` | Beneficial heat-resistance alleles | Reduces bleaching mortality depending on genetic model |
-| `SDX`, `SDY` | Standard deviations for larval movement | Controls dispersal distance in X/Y coordinates |
-| `clone_rate` | Probability of clonal reproduction | Reflects stochastic fragmentation rate |
-| `parentalK`, `proK` | Carrying capacities for parental and hybrid species | Local density limits settlement success |
-| `other_species_compete` | Competition factor from heterospecific neighbors | Determines how interspecific competition reduces settlement |
-| `heat_resistant_mortality_modifier` | Proportional reduction in mortality due to beneficial allele | Simulates protective effect of heat-resistance alleles |
-| `bleaching_rate` | Probability of bleaching each year | Increases over time to simulate climate change |
-| `mut_type` | Genetic model for heat resistance: 0 = additive, 1 = dominant, 2 = recessive | Influences how allele count affects mortality |
+Below is a **GitHub-ready Markdown table** you can paste directly into your README.
+
+---
+
+## Variables and Parameters
+
+| Category                  | Variable                            | Default   | Description                                                                                      | Units / Notes                |
+| ------------------------- | ----------------------------------- | --------- | ------------------------------------------------------------------------------------------------ | ---------------------------- |
+| **Bleaching**             | `bleaching_rate`                    | 0.167     | Starting annual probability of bleaching; increases over time during the simulation.             | probability (0–1)            |
+| **Bleaching**             | `bleaching_simulation`              | 0         | Enables dynamic bleaching logic (1 = on, 0 = off).                                               | boolean                      |
+| **Density / Competition** | `other_species_compete`             | 0.0       | Degree of heterospecific competition. 1 = full competition, 0 = independent niches.              | unitless                     |
+| **Density / Competition** | `parentalK`                         | 262 / DS  | Carrying capacity for parental species used in density dependence.                               | individuals per km² (scaled) |
+| **Density / Competition** | `proK`                              | derived   | Carrying capacity for *A. prolifera*; depends on `parentalK`, `other_species_compete`, and `DS`. | individuals per km²          |
+| **Density / Competition** | `S`                                 | 1         | Spatial competition distance.                                                                    | km                           |
+| **Genetics**              | `m1`                                | —         | Neutral marker tracking parental ancestry (e.g., palmata ancestry).                              | mutation type                |
+| **Genetics**              | `m2`                                | —         | Speciation loci used to classify offspring species.                                              | mutation type                |
+| **Genetics**              | `m3`                                | —         | Beneficial allele type used to test introgression effects.                                       | mutation type                |
+| **Mortality / Bleaching** | `base_adult_mortality_rate`         | 0.01      | Baseline annual adult mortality in non-bleaching years.                                          | probability                  |
+| **Mortality / Bleaching** | `heat_resistant_mortality_modifier` | 0.5       | Proportional reduction in mortality when beneficial allele is expressed.                         | multiplier                   |
+| **Mortality / Bleaching** | `mortality_rate_elevation`          | 2         | Multiplier applied to mortality during bleaching years.                                          | multiplier                   |
+| **Mortality / Bleaching** | `mut_type`                          | 0         | Genetic model for beneficial allele: 0 = additive, 1 = dominant, 2 = recessive.                  | categorical                  |
+| **Movement / Dispersal**  | `MD`                                | 0.6       | Maximum mating distance.                                                                         | km                           |
+| **Movement / Dispersal**  | `SDX`                               | 10        | Larval dispersal standard deviation (X axis).                                                    | km                           |
+| **Movement / Dispersal**  | `SDY`                               | 10        | Larval dispersal standard deviation (Y axis).                                                    | km                           |
+| **Movement / Dispersal**  | `clonal_SDX`                        | 0.5       | Clonal fragment dispersal SD (X axis).                                                           | km                           |
+| **Movement / Dispersal**  | `clonal_SDY`                        | 0.5       | Clonal fragment dispersal SD (Y axis).                                                           | km                           |
+| **Movement / Dispersal**  | `meanX`                             | 0         | Mean dispersal offset in X.                                                                      | km                           |
+| **Movement / Dispersal**  | `meanY`                             | 0         | Mean dispersal offset in Y.                                                                      | km                           |
+| **Reproduction**          | `clone_rate`                        | 0.02      | Probability of clonal reproduction via fragmentation.                                            | probability                  |
+| **Reproduction**          | `gamma`                             | 1.0       | Down-weighting factor for prolifera sperm success.                                               | multiplier                   |
+| **Reproduction**          | `cer_csp`                           | 0.03      | Conspecific sperm preference for cervicornis eggs.                                               | probability                  |
+| **Reproduction**          | `pal_csp`                           | 0.333     | Conspecific sperm preference for palmata eggs.                                                   | probability                  |
+| **Reproduction**          | `success_cer`                       | 0.01      | Fertilization success for cervicornis × cervicornis crosses.                                     | probability                  |
+| **Reproduction**          | `success_pal`                       | 0.01      | Fertilization success for palmata × palmata crosses.                                             | probability                  |
+| **Reproduction**          | `success_pro`                       | 0.01      | Fertilization success for mixed or hybrid crosses.                                               | probability                  |
+| **Reproduction**          | `F2_success_scale`                  | 1         | Scaling factor modifying F2 hybrid success.                                                      | multiplier                   |
+| **Reproduction**          | `initial_ratio`                     | 0.5       | Initial fraction of the population that is palmata.                                              | proportion                   |
+| **Run / Scaling**         | `DS`                                | 5         | Downscaling factor controlling population size and carrying capacity.                            | unitless                     |
+| **Run / Scaling**         | `SN`                                | derived   | Initial population size (`SN / DS`).                                                         | individuals                  |
+| **Run / Scaling**         | `output_name`                       | "run1"    | Prefix used for output files.                                                                    | string                       |
+| **Run / Scaling**         | `wd`                                | user path | Working directory for maps and outputs.                                                          | path                         |
+| **Spatial Maps**          | `map_style`                         | 0         | Map selection (0 = simple, 2 = custom).                                  | categorical                  |
+| **Spatial Maps**          | `map_size_length`                   | 12.964    | Landscape length.                                                                                | km                           |
+| **Spatial Maps**          | `map_size_width`                    | 8.96      | Landscape width.                                                                                 | km                           |
+| **Spatial Maps**          | `random_initial_settle`             | 1         | Whether initial individuals are randomly placed.                                                 | boolean                      |
+| **Visualization**         | `Color_scheme`                      | 1         | Coloring mode (0 = genomic, 1 = phenotypic).                                                     | categorical                  |
+| **Files**                 | `custom_map_filename`               | 0         | Filename for user-supplied habitat map.                                                          | string                       |
+| **Files**                 | `file_extention`                    | ".png"    | File extension for map images.                                                                   | string                       |
+
+---
+
+### Notes
+
+* All spatial distances are in **kilometers**.
+* `proK` is computed dynamically and will change if `parentalK`, `other_species_compete`, or `DS` are modified.
+* Setting `bleaching_simulation = 0` disables genotype-dependent bleaching mortality.
+* Population size and density are strongly affected by the downscaling parameter `DS`.
+
+---
+
+If helpful, the next high-impact improvement would be an **Outputs table** so users know exactly what each column in your CSV means.
+
 
 ---
 
