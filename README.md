@@ -7,15 +7,14 @@ This repository contains a forward-time, individual-based simulation of coral hy
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Key Biological Concepts](#key-biological-concepts)
-3. [Simulation Structure](#simulation-structure)
-4. [Variables and Parameters](#variables-and-parameters)
-5. [Movement and Dispersal](#movement-and-dispersal)
-6. [Reproduction](#reproduction)
+2. [Simulation Structure](#simulation-structure)
+3. [Variables and Parameters](#variables-and-parameters)
+4. [Movement and Dispersal](#movement-and-dispersal)
+5. [Reproduction](#reproduction)
    - [Sexual Reproduction](#sexual-reproduction)
    - [Clonal Reproduction](#clonal-reproduction)
-7. [Mortality and Bleaching](#mortality-and-bleaching)
-8. [Population Sampling and Output](#population-sampling-and-output)
+6. [Mortality and Bleaching](#mortality-and-bleaching)
+7. [Population Sampling and Output](#population-sampling-and-output)
 
 ---
 
