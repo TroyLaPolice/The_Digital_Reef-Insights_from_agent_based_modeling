@@ -228,19 +228,15 @@ When `bleaching_simulation = 1`:
 ---
 
 ### Genetic models of resistance
-
 The effect of beneficial alleles depends on `mut_type`.
 
 #### Additive (0)
-
 Each copy reduces mortality multiplicatively:
 
 #### Dominant (1)
-
 Any copy confers protection.
 
 #### Recessive (2)
-
 Two copies required for protection.
 
 ---
