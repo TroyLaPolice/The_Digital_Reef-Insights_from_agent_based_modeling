@@ -82,7 +82,7 @@ It is implemented as an **SLiM forward-time individual-based simulation**, with 
 | **Spatial Maps**          | `map_size_width`                    | 8.96      | Landscape width.                                                                                 | km                           |
 | **Spatial Maps**          | `random_initial_settle`             | 1         | Whether initial individuals are randomly placed.                                                 | boolean                      |
 | **Visualization**         | `Color_scheme`                      | 1         | Coloring mode for GUI (0 = genomic, 1 = phenotypic).                                                     | categorical                  |
-| **Files**                 | `custom_map_filename`               | 0         | Filename for user-supplied habitat map.                                                          | string                       |
+| **Files**                 | `custom_map_filename`               | simple_map         | Filename for user-supplied habitat map.                                                          | string                       |
 | **Files**                 | `file_extention`                    | ".png"    | File extension for map images.                                                                   | string                       |
 
 ---
