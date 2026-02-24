@@ -272,6 +272,6 @@ Every 20 years, up to 1000 individuals are sampled and written to file with:
 * age
 * parental ancestry proportions
 
-**Purpose:** Enables spatial and genomic analysis of introgression patterns.
+**Purpose:** Enables spatial and genomic analysis of introgression patterns of sampled individuals.
 
 ---
