@@ -11,16 +11,13 @@ This repository contains a forward-time, individual-based simulation of coral hy
 3. [Simulation Structure](#simulation-structure)
 4. [Movement and Dispersal](#movement-and-dispersal)
 5. [Reproduction](#reproduction)
-
    * [Sexual Reproduction](#sexual-reproduction)
    * [Clonal Reproduction](#clonal-reproduction)
 6. [Mortality and Bleaching](#mortality-and-bleaching)
-
    * [Baseline Mortality](#baseline-mortality)
    * [Bleaching Dynamics](#bleaching-dynamics)
    * [Genetic Models of Resistance](#genetic-models-of-resistance)
 7. [Population Sampling and Output](#population-sampling-and-output)
-
    * [Annual Output](#annual-output)
    * [20-year Ancestry Sampling](#20-year-ancestry-sampling)
 
