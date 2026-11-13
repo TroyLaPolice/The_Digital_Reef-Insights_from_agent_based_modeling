@@ -1,6 +1,12 @@
 # Source and replicate data for Figures 2–9
 
-This collection contains the numerical data underlying Figures 2–9 of the Caribbean *Acropora* population-simulation study. It includes **42 comma-separated value (CSV) files**: one figure-level source-data file and one simulation-replicate file for each of 21 figure panels. The modeled taxa are *Acropora palmata*, *A. cervicornis*, and their hybrid *A. prolifera*.
+This README describes the numerical data underlying Figures 2–9 of the Caribbean *Acropora* population-simulation study. The dataset contains **42 comma-separated value (CSV) files**: one figure-level source-data file and one simulation-replicate file for each of 21 figure panels. The modeled taxa are *Acropora palmata*, *A. cervicornis*, and their hybrid *A. prolifera*.
+
+## Data access
+
+**Source and replicate data (Zenodo):** [https://doi.org/10.5281/zenodo.24202840](https://doi.org/10.5281/zenodo.24202840)
+
+The 42 CSV files are deposited on **Zenodo** and are not included in this GitHub repository. This GitHub repository contains the code and documentation, including this README. Download the data from the Zenodo record above to access the files listed below. The DOI provides a persistent link for citing the archived dataset.
 
 ## File organization
 
@@ -49,7 +55,7 @@ Only experimental factors varying within each panel are retained as parameter co
 
 ## Column definitions
 
-The precise column set varies with the type of panel.
+The precise column set varies with the type of panel. All files use a header row, and missing numerical entries are represented as blank/NA fields.
 
 | Column | Definition |
 |---|---|
@@ -80,8 +86,8 @@ The precise column set varies with the type of panel.
 
 ## Replicate structure and uncertainty
 
-Each `Rep` is an independent stochastic simulation; individual corals within a replicate are **not** treated as independent replicates for the figure-level standard deviations. `two_sd` is a descriptive dispersion measure, **not** a standard error or a 95% confidence interval. Means and SDs are calculated from the nonmissing replicate values available for a given treatment, species/measure, and year.
+Each `Rep` is an independent stochastic simulation; individual corals within a replicate are **not** treated as independent replicates for the figure-level standard deviations.
 
 For the beneficial-allele plots, a species may be intentionally omitted from the visualization when its abundance-based display condition is not met. In Figure 6C, the *A. prolifera* summary is masked whenever any contributing replicate has zero *A. prolifera* individuals. In Figures 8–9, the same *A. prolifera* condition applies, and any species with zero mean abundance is also masked. The `displayed`, abundance, and replicate-value columns document these decisions; **unmasked replicate-level values remain available** even where a line is not drawn.
 
-These files contain analyzed figure data, not the full raw simulation outputs or complete records of all simulated individuals.
+The files archived on Zenodo contain analyzed figure data, not the full raw simulation outputs or complete records of all simulated individuals.
