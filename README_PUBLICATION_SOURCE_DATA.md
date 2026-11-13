@@ -49,7 +49,7 @@ Only experimental factors varying within each panel are retained as parameter co
 
 ## Column definitions
 
-The precise column set varies with the type of panel. All files use a header row, and missing numerical entries are represented as blank/NA fields.
+The precise column set varies with the type of panel.
 
 | Column | Definition |
 |---|---|
