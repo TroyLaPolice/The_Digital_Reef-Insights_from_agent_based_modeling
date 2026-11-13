@@ -64,7 +64,7 @@ The precise column set varies with the type of panel.
 | `beneficial_allele_copies` | Species-specific mean allele-copy value reported for one replicate. |
 | `mean_beneficial_allele_copies` | Mean of the replicate-level beneficial-allele-copy values. |
 | `two_sd` | Two times the sample standard deviation across simulation replicates, calculated separately for each treatment, year, and species/ancestry measurement. |
-| `ribbon_lower`, `ribbon_upper` | Mean minus/plus `two_sd`, respectively; numerical coordinates underlying uncertainty ribbons. Bounds are not necessarily clipped to visible plotting limits. |
+| `ribbon_lower`, `ribbon_upper` | Mean minus/plus `two_sd`, respectively; numerical coordinates underlying uncertainty ribbons. |
 | `bar_segment_lower`, `bar_segment_upper` | Lower and upper coordinates of a species segment within a stacked bar. |
 | `error_bar_lower_displayed`, `error_bar_upper_displayed` | Lower and upper coordinates of the error bar as drawn. Error bars are centered on the stacked segment and restricted to its boundaries. |
 | `Total_palmata`, `Total_cervicornis`, `Total_prolifera` | Numbers of individuals of each species in that replicate and year; retained for Figures 8 and 9 to document presence/absence rules. |
